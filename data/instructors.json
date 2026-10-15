@@ -1,0 +1,73 @@
+[
+  {
+    "id": "i1",
+    "name": "Dr. Mona Hassan",
+    "title_ar": "د. منى حسن",
+    "experience_years": 12,
+    "bio": "PhD in Computer Science; leads applied ML projects for banks and telecoms in Cairo.",
+    "specialties": [
+      "machine learning",
+      "python",
+      "data"
+    ]
+  },
+  {
+    "id": "i2",
+    "name": "Eng. Ahmed Fathy",
+    "title_ar": "م. أحمد فتحي",
+    "experience_years": 9,
+    "bio": "Full-stack engineer and trainer; built production web platforms in Egypt and KSA.",
+    "specialties": [
+      "web",
+      "react",
+      "javascript"
+    ]
+  },
+  {
+    "id": "i3",
+    "name": "Eng. Sara Nabil",
+    "title_ar": "م. سارة نبيل",
+    "experience_years": 8,
+    "bio": "Certified security analyst (CEH) with SOC experience.",
+    "specialties": [
+      "security",
+      "networks"
+    ]
+  },
+  {
+    "id": "i4",
+    "name": "Ms. Laila Mansour",
+    "title_ar": "أ. ليلى منصور",
+    "experience_years": 10,
+    "bio": "Digital marketing consultant; managed regional ad campaigns.",
+    "specialties": [
+      "marketing",
+      "social media",
+      "seo"
+    ]
+  },
+  {
+    "id": "i5",
+    "name": "Dr. Khaled Ibrahim",
+    "title_ar": "د. خالد إبراهيم",
+    "experience_years": 15,
+    "bio": "PMP-certified project director and business trainer.",
+    "specialties": [
+      "project management",
+      "business",
+      "excel"
+    ]
+  },
+  {
+    "id": "i6",
+    "name": "Dr. Nour Adel",
+    "title_ar": "د. نور عادل",
+    "experience_years": 11,
+    "bio": "Health-informatics specialist working with hospital IT teams.",
+    "specialties": [
+      "healthcare",
+      "informatics",
+      "data"
+    ]
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "f1",
+    "q_en": "Can I pay in installments?",
+    "a_en": "Installment plans are available for courses above 4,000 EGP. Contact admissions to arrange one.",
+    "q_ar": "هل يمكن الدفع بالتقسيط؟",
+    "a_ar": "التقسيط متاح للدورات التي يزيد سعرها عن 4000 جنيه. تواصل مع قسم القبول.",
+    "keywords": "installments pay payment تقسيط دفع"
+  },
+  {
+    "id": "f2",
+    "q_en": "Do I get a certificate?",
+    "a_en": "Yes, an academy completion certificate is issued after passing the final assessment. It is not an official accreditation unless stated on the course.",
+    "q_ar": "هل أحصل على شهادة؟",
+    "a_ar": "نعم، تصدر شهادة إتمام من الأكاديمية بعد اجتياز التقييم النهائي، وهي ليست اعتماداً رسمياً ما لم يُذكر ذلك في الدورة.",
+    "keywords": "certificate شهادة"
+  },
+  {
+    "id": "f3",
+    "q_en": "Are sessions recorded?",
+    "a_en": "Online sessions are recorded and available for 30 days.",
+    "q_ar": "هل الجلسات مسجلة؟",
+    "a_ar": "الجلسات الأونلاين مسجلة ومتاحة لمدة 30 يوماً.",
+    "keywords": "recorded recording sessions تسجيل مسجلة"
+  }
+]

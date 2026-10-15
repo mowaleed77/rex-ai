@@ -1,0 +1,309 @@
+[
+  {
+    "id": "C01",
+    "title_en": "Python for Data Analysis",
+    "title_ar": "بايثون لتحليل البيانات",
+    "department": "AI & Data",
+    "level": "Beginner",
+    "industry": "Technology",
+    "duration_hours": 40,
+    "formats": [
+      "online",
+      "onsite"
+    ],
+    "price_egp": 4500,
+    "promotion": "15% off for early registration",
+    "prerequisites": "None",
+    "target_audience": "Graduates and career switchers who want to start in data",
+    "learning_outcomes": [
+      "Write Python scripts",
+      "Clean data with pandas",
+      "Build charts and dashboards",
+      "Present data insights"
+    ],
+    "description": "Hands-on introduction to Python, pandas and visualization for real datasets.",
+    "instructor_id": "i1",
+    "career_opportunities": [
+      "Data Analyst",
+      "BI Analyst"
+    ],
+    "accreditation_framework": "None claimed",
+    "country": "Egypt",
+    "keywords": "python data analysis analytics pandas visualization excel بايثون بيانات تحليل تحليل البيانات داتا ذكاء اصطناعي الذكاء الاصطناعي تعلم الآلة",
+    "data_source": "SAMPLE DATA - replace with academy-approved catalog",
+    "updated": "2026-10-14"
+  },
+  {
+    "id": "C02",
+    "title_en": "Machine Learning Fundamentals",
+    "title_ar": "أساسيات تعلم الآلة",
+    "department": "AI & Data",
+    "level": "Intermediate",
+    "industry": "Technology",
+    "duration_hours": 48,
+    "formats": [
+      "online",
+      "onsite",
+      "hybrid"
+    ],
+    "price_egp": 6500,
+    "promotion": "None",
+    "prerequisites": "Python basics and school-level statistics",
+    "target_audience": "Analysts and developers moving into AI",
+    "learning_outcomes": [
+      "Train and evaluate ML models",
+      "Apply feature engineering",
+      "Use scikit-learn",
+      "Deploy a simple model"
+    ],
+    "description": "Supervised and unsupervised learning with a capstone ML project.",
+    "instructor_id": "i1",
+    "career_opportunities": [
+      "ML Engineer",
+      "Data Scientist"
+    ],
+    "accreditation_framework": "None claimed",
+    "country": "Egypt",
+    "keywords": "machine learning ml ai artificial intelligence models scikit data science تعلم الآلة ذكاء اصطناعي الذكاء الاصطناعي",
+    "data_source": "SAMPLE DATA - replace with academy-approved catalog",
+    "updated": "2026-10-14"
+  },
+  {
+    "id": "C03",
+    "title_en": "Generative AI & LLM Applications",
+    "title_ar": "تطبيقات الذكاء الاصطناعي التوليدي",
+    "department": "AI & Data",
+    "level": "Advanced",
+    "industry": "Technology",
+    "duration_hours": 36,
+    "formats": [
+      "online"
+    ],
+    "price_egp": 7500,
+    "promotion": "Group discount: 3+ seats 10%",
+    "prerequisites": "Python and basic ML knowledge",
+    "target_audience": "Developers and technical leads",
+    "learning_outcomes": [
+      "Design prompts and RAG pipelines",
+      "Build LLM agents",
+      "Evaluate and monitor LLM apps",
+      "Ship an AI assistant"
+    ],
+    "description": "Build retrieval-augmented assistants and multi-agent workflows with modern LLM APIs.",
+    "instructor_id": "i1",
+    "career_opportunities": [
+      "AI Engineer",
+      "LLM Application Developer"
+    ],
+    "accreditation_framework": "None claimed",
+    "country": "Egypt",
+    "keywords": "generative ai llm rag agents chatbot prompt openai gpt ذكاء اصطناعي توليدي شات بوت وكلاء",
+    "data_source": "SAMPLE DATA - replace with academy-approved catalog",
+    "updated": "2026-10-14"
+  },
+  {
+    "id": "C04",
+    "title_en": "Web Development with React",
+    "title_ar": "تطوير الويب باستخدام React",
+    "department": "Software",
+    "level": "Beginner",
+    "industry": "Technology",
+    "duration_hours": 60,
+    "formats": [
+      "online",
+      "onsite"
+    ],
+    "price_egp": 5200,
+    "promotion": "None",
+    "prerequisites": "Basic computer skills",
+    "target_audience": "Beginners who want to become web developers",
+    "learning_outcomes": [
+      "Build responsive pages with HTML/CSS/JS",
+      "Create React apps",
+      "Consume REST APIs",
+      "Deploy a portfolio project"
+    ],
+    "description": "From HTML to a deployed React application with Git workflow.",
+    "instructor_id": "i2",
+    "career_opportunities": [
+      "Front-End Developer",
+      "Web Developer"
+    ],
+    "accreditation_framework": "None claimed",
+    "country": "Egypt",
+    "keywords": "web development react javascript html css frontend programming برمجة تطوير مواقع ويب جافاسكريبت",
+    "data_source": "SAMPLE DATA - replace with academy-approved catalog",
+    "updated": "2026-10-14"
+  },
+  {
+    "id": "C05",
+    "title_en": "Cybersecurity Essentials",
+    "title_ar": "أساسيات الأمن السيبراني",
+    "department": "Software",
+    "level": "Beginner",
+    "industry": "Technology",
+    "duration_hours": 32,
+    "formats": [
+      "online",
+      "onsite"
+    ],
+    "price_egp": 4800,
+    "promotion": "10% off for students",
+    "prerequisites": "Basic networking awareness",
+    "target_audience": "IT staff and graduates entering security",
+    "learning_outcomes": [
+      "Identify common threats",
+      "Harden systems and networks",
+      "Run basic vulnerability scans",
+      "Respond to incidents"
+    ],
+    "description": "Core security concepts, tools and incident-response basics.",
+    "instructor_id": "i3",
+    "career_opportunities": [
+      "SOC Analyst",
+      "Security Associate"
+    ],
+    "accreditation_framework": "Aligned with common entry-level security competencies (not officially accredited)",
+    "country": "Egypt",
+    "keywords": "cybersecurity security hacking network protection soc أمن سيبراني امن المعلومات حماية شبكات",
+    "data_source": "SAMPLE DATA - replace with academy-approved catalog",
+    "updated": "2026-10-14"
+  },
+  {
+    "id": "C06",
+    "title_en": "Digital Marketing Fundamentals",
+    "title_ar": "أساسيات التسويق الرقمي",
+    "department": "Business",
+    "level": "Beginner",
+    "industry": "Marketing",
+    "duration_hours": 30,
+    "formats": [
+      "online",
+      "onsite",
+      "hybrid"
+    ],
+    "price_egp": 3800,
+    "promotion": "WhatsApp registration bonus workshop",
+    "prerequisites": "None",
+    "target_audience": "Entrepreneurs, graduates and marketing juniors",
+    "learning_outcomes": [
+      "Plan multi-channel campaigns",
+      "Write effective ad copy",
+      "Use SEO and analytics",
+      "Measure campaign ROI"
+    ],
+    "description": "Practical social media, SEO and paid ads training with live campaigns.",
+    "instructor_id": "i4",
+    "career_opportunities": [
+      "Digital Marketer",
+      "Social Media Specialist"
+    ],
+    "accreditation_framework": "None claimed",
+    "country": "Egypt",
+    "keywords": "marketing digital social media ads seo facebook instagram تسويق رقمي اعلانات سوشيال ميديا",
+    "data_source": "SAMPLE DATA - replace with academy-approved catalog",
+    "updated": "2026-10-14"
+  },
+  {
+    "id": "C07",
+    "title_en": "Project Management Professional Prep",
+    "title_ar": "التحضير لاحتراف إدارة المشاريع",
+    "department": "Business",
+    "level": "Intermediate",
+    "industry": "Management",
+    "duration_hours": 35,
+    "formats": [
+      "online",
+      "onsite"
+    ],
+    "price_egp": 6000,
+    "promotion": "None",
+    "prerequisites": "2+ years of work experience",
+    "target_audience": "Team leads and aspiring project managers",
+    "learning_outcomes": [
+      "Plan scope, time and cost",
+      "Manage risk and stakeholders",
+      "Apply agile and predictive methods",
+      "Prepare for PMP-style exams"
+    ],
+    "description": "Exam-oriented project management course with case studies.",
+    "instructor_id": "i5",
+    "career_opportunities": [
+      "Project Manager",
+      "PMO Analyst"
+    ],
+    "accreditation_framework": "Prepares for PMI-style exams (not an official PMI course)",
+    "country": "Egypt",
+    "keywords": "project management pmp agile scrum planning risk إدارة مشاريع ادارة المشروعات",
+    "data_source": "SAMPLE DATA - replace with academy-approved catalog",
+    "updated": "2026-10-14"
+  },
+  {
+    "id": "C08",
+    "title_en": "Excel for Business Analysis",
+    "title_ar": "إكسل لتحليل الأعمال",
+    "department": "Business",
+    "level": "Beginner",
+    "industry": "Management",
+    "duration_hours": 24,
+    "formats": [
+      "online",
+      "onsite"
+    ],
+    "price_egp": 2800,
+    "promotion": "20% off this month",
+    "prerequisites": "None",
+    "target_audience": "Office employees and accountants",
+    "learning_outcomes": [
+      "Use formulas and lookups",
+      "Build pivot tables",
+      "Create dashboards",
+      "Automate reports"
+    ],
+    "description": "Practical Excel skills for reporting and analysis.",
+    "instructor_id": "i5",
+    "career_opportunities": [
+      "Business Analyst",
+      "Financial Assistant"
+    ],
+    "accreditation_framework": "None claimed",
+    "country": "Egypt",
+    "keywords": "excel spreadsheets pivot formulas reporting accounting اكسل جداول محاسبة تقارير",
+    "data_source": "SAMPLE DATA - replace with academy-approved catalog",
+    "updated": "2026-10-14"
+  },
+  {
+    "id": "C09",
+    "title_en": "Healthcare Informatics Basics",
+    "title_ar": "أساسيات المعلوماتية الصحية",
+    "department": "Healthcare",
+    "level": "Beginner",
+    "industry": "Healthcare",
+    "duration_hours": 28,
+    "formats": [
+      "onsite",
+      "hybrid"
+    ],
+    "price_egp": 5000,
+    "promotion": "None",
+    "prerequisites": "None",
+    "target_audience": "Healthcare staff and IT teams in hospitals",
+    "learning_outcomes": [
+      "Understand EHR systems",
+      "Apply health data standards",
+      "Protect patient privacy",
+      "Analyze clinical data"
+    ],
+    "description": "Introduction to health IT systems, data standards and privacy.",
+    "instructor_id": "i6",
+    "career_opportunities": [
+      "Health Informatics Assistant",
+      "Clinical Data Coordinator"
+    ],
+    "accreditation_framework": "None claimed",
+    "country": "Egypt",
+    "keywords": "healthcare health informatics hospital medical ehr رعاية صحية معلوماتية صحية مستشفى طب",
+    "data_source": "SAMPLE DATA - replace with academy-approved catalog",
+    "updated": "2026-10-14"
+  }
+]
