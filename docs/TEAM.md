@@ -1,8 +1,8 @@
-# Team Responsibilities (2 members — edit names + GitHub handles)
+# Team Responsibilities (2 members)
 
 Every student owns agents/modules **and** appears in commits, branches and PRs under their own account.
 
-| | Member 1 – _name_ (@github) | Member 2 – _name_ (@github) |
+| | Member 1 – MoWaleed77 (@github) | Member 2 – NourWalid111 |
 |---|---|---|
 | **Agents owned** | Agent 1 REX Assistant · Agent 2 RFP Research · Agent 5 Marketing | Agent 3 Curriculum & Accreditation · Agent 4 Document Generation (PDF) |
 | **Shared components** | Knowledge base / RAG, orchestrator (`rex/agents/orchestrator.py`), FastAPI | Streamlit UI, PDF templates, reference documents |
