@@ -1,4 +1,4 @@
-# Team Responsibilities (2 members — edit names + GitHub handles)
+# Team Responsibilities (2 members)
 
 Every student owns agents/modules **and** appears in commits, branches and PRs under their own account.
 
