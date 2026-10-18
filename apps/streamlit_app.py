@@ -1,26 +1,113 @@
-"""Demo UI: streamlit run apps/streamlit_app.py"""
-import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+
 import streamlit as st
 from rex.assistant.engine import RexAssistant, Session
 
-st.set_page_config(page_title="REX AI", page_icon="🎓")
-# Per-paragraph text direction so Arabic replies align right-to-left and English left-to-right
-st.markdown("<style>.stChatMessage p, .stChatMessage li {unicode-bidi: plaintext; text-align: start;}</style>", unsafe_allow_html=True)
-st.title("🎓 REX Assistant")
-st.caption("Course recommendation chatbot (Sprint 1 prototype) — Arabic & English")
+st.set_page_config(
+    page_title="REX AI | Smart Academy",
+    page_icon="🎓",
+    layout="centered"
+)
+
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #f5f7fb;
+        color: #1f2937;
+    }
+
+    h1, h2, h3 {
+        color: #163b65 !important;
+    }
+
+    .stChatMessage {
+        background-color: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 12px;
+    }
+
+    [data-testid="stChatInput"] textarea {
+        color: #222222 !important;
+        -webkit-text-fill-color: #222222 !important;
+        background-color: #ffffff !important;
+        caret-color: #222222 !important;
+        opacity: 1 !important;
+    }
+
+    [data-testid="stChatInput"] textarea::placeholder {
+        color: #666666 !important;
+        -webkit-text-fill-color: #666666 !important;
+        opacity: 1 !important;
+    }
+
+    [data-testid="stChatInputSubmitButton"] {
+        color: #ffffff !important;
+    }
+
+    [data-testid="stChatMessageContent"],
+    [data-testid="stChatMessageContent"] p {
+        color: #1f2937 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+st.title("🎓 REX AI | Smart Academy")
+st.caption("Your bilingual assistant for academy courses")
 
 if "bot" not in st.session_state:
-    st.session_state.bot, st.session_state.s = RexAssistant(), Session()
-    st.session_state.msgs = [("assistant", st.session_state.bot.reply(st.session_state.s, "hello"))]
+    st.session_state.bot = RexAssistant()
 
-def show(role, text):
-    # keep the bot's line breaks (markdown ignores single newlines)
-    st.chat_message(role).markdown(text.replace("\n", "  \n"))
+if "session" not in st.session_state:
+    st.session_state.session = Session()
 
-for role, text in st.session_state.msgs:
-    show(role, text)
-if prompt := st.chat_input("Type in Arabic or English…"):
-    st.session_state.msgs.append(("user", prompt))
-    st.session_state.msgs.append(("assistant", st.session_state.bot.reply(st.session_state.s, prompt)))
-    st.rerun()
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+if not st.session_state.messages:
+    st.markdown(
+        """
+        ### Welcome to REX AI!
+
+        Ask me about courses, prices, duration, prerequisites, and career opportunities.
+
+        **مرحباً بك في REX AI!**
+
+        اسألني عن الكورسات والأسعار والمدة والمتطلبات وفرص العمل.
+        """
+    )
+
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+question = st.chat_input("Ask in English or Arabic...")
+
+if question:
+    st.session_state.messages.append(
+        {"role": "user", "content": question}
+    )
+
+    with st.chat_message("user"):
+        st.markdown(question)
+
+    with st.chat_message("assistant"):
+        with st.spinner("REX AI is thinking..."):
+            try:
+                response = st.session_state.bot.reply(
+                    st.session_state.session,
+                    question
+                )
+            except Exception as error:
+                response = f"Sorry, something went wrong: {error}"
+
+        if not isinstance(response, str):
+            response = str(response)
+
+        st.markdown(response)
+
+    st.session_state.messages.append(
+        {"role": "assistant", "content": response}
+    )
