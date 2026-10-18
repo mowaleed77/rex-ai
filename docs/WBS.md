@@ -15,7 +15,7 @@
 | 4.1 | Accreditation alignment | Gap analysis and report | 2 | Member 2 |
 | 5.0 | Document Generation | PDF output + templates | 2 | Member 2 |
 | 6.0 | Marketing Agent | Campaign content generator | 2 | Member 2 |
-| 7.0 | Multi-agent integration | Unified interface and workflows | 3 | Both (Member 1 leads) |
+| 7.0 | Multi-agent integration | Unified interface and workflows | 3 | Both |
 | 8.0 | Testing & QA | Test scenarios, bug fixes | 2–3 | Both |
 | 9.0 | Documentation & GitHub | README, setup guide, commits | 1–3 | Both |
 | 10.0 | Final deployment & demo | Working project + presentation | 3 | Both |
