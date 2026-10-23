@@ -46,7 +46,8 @@ class LLMClient:
     def __call__(self, messages: list[dict], temperature: float = 0.2) -> str:
         body = json.dumps({"model": self.model, "messages": messages, "temperature": temperature}).encode("utf-8")
         req = urllib.request.Request(f"{self.base_url}/chat/completions", data=body, method="POST",
-                                     headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}"})
+                                     headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}",
+                                              "Accept": "application/json", "User-Agent": "rex-ai/1.0 (+python)"})
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
