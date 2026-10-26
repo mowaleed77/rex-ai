@@ -1,8 +1,6 @@
 
-"""Router: sends a task to the right agent. Sprint 3 adds multi-agent workflows."""
+"""Router: sends a task to the right agent."""
 
-from .stubs import CurriculumAgent, DocumentAgent, MarketingAgent
-from .rfp import RfpAgent
 from .base import Agent, AgentResult
 from .rfp import RfpAgent
 from .curriculum import CurriculumAgent
@@ -16,7 +14,7 @@ class Orchestrator:
             RfpAgent(),
             CurriculumAgent(),
             DocumentAgent(),
-            MarketingAgent()
+            MarketingAgent(),
         )
         self.agents: dict[str, Agent] = {
             agent.name: agent for agent in agents
@@ -32,7 +30,7 @@ class Orchestrator:
             return AgentResult(
                 agent_name,
                 False,
-                message=f"Unknown agent '{agent_name}'"
+                message=f"Unknown agent '{agent_name}'",
             )
 
         try:
@@ -41,6 +39,6 @@ class Orchestrator:
             return AgentResult(
                 agent_name,
                 False,
-                message=f"Agent error: {error}"
+                message=f"Agent error: {error}",
             )
 

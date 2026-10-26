@@ -18,15 +18,19 @@ class RfpAgent(Agent):
                 ok=False,
                 message="Only Egypt and Saudi Arabia are supported."
             )
-
         opportunities = task.get("opportunities")
 
         if opportunities is None:
             if not country:
                 return AgentResult(
                     agent=self.name,
-                    ok=False,
-                    message="Provide a country for live RFP research."
+                    ok=True,
+                    output={
+                        "opportunities": [],
+                        "count": 0,
+                        "supported_countries": ["Egypt", "Saudi Arabia"],
+                    },
+                    message="Provide a country to search for RFP opportunities.",
                 )
 
             search_result = search_rfps(
