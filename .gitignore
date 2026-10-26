@@ -4,3 +4,4 @@ __pycache__/
 data/leads.csv
 *.pyc
 .pytest_cache/
+generated_docs/
