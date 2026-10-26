@@ -1,8 +1,6 @@
 
 """Router: sends a task to the right agent. Sprint 3 adds multi-agent workflows."""
 
-from .stubs import CurriculumAgent, DocumentAgent, MarketingAgent
-from .rfp import RfpAgent
 from .base import Agent, AgentResult
 from .rfp import RfpAgent
 from .curriculum import CurriculumAgent
