@@ -31,7 +31,22 @@
     "country": "Egypt",
     "keywords": "python data analysis analytics pandas visualization excel بايثون بيانات تحليل تحليل البيانات داتا ذكاء اصطناعي الذكاء الاصطناعي تعلم الآلة",
     "data_source": "SAMPLE DATA - replace with academy-approved catalog",
-    "updated": "2026-10-14"
+    "updated": "2026-10-14",
+    "description_ar": "مقدمة عملية في بايثون ومكتبة pandas والتصوير البياني للبيانات على مجموعات بيانات حقيقية.",
+    "learning_outcomes_ar": [
+      "كتابة سكربتات بايثون",
+      "تنظيف البيانات باستخدام pandas",
+      "بناء رسوم بيانية ولوحات معلومات",
+      "عرض نتائج تحليل البيانات"
+    ],
+    "prerequisites_ar": "لا يوجد",
+    "target_audience_ar": "الخريجون ومن يريدون تغيير مسارهم المهني للعمل في مجال البيانات",
+    "career_opportunities_ar": [
+      "محلل بيانات",
+      "محلل ذكاء الأعمال"
+    ],
+    "promotion_ar": "خصم 15% عند التسجيل المبكر",
+    "accreditation_framework_ar": "لا يوجد اعتماد رسمي"
   },
   {
     "id": "C02",
@@ -66,7 +81,22 @@
     "country": "Egypt",
     "keywords": "machine learning ml ai artificial intelligence models scikit data science تعلم الآلة ذكاء اصطناعي الذكاء الاصطناعي",
     "data_source": "SAMPLE DATA - replace with academy-approved catalog",
-    "updated": "2026-10-14"
+    "updated": "2026-10-14",
+    "description_ar": "تعلم الآلة الخاضع للإشراف وغير الخاضع للإشراف مع مشروع تخرج عملي.",
+    "learning_outcomes_ar": [
+      "تدريب نماذج تعلم الآلة وتقييمها",
+      "تطبيق هندسة الخصائص",
+      "استخدام مكتبة scikit-learn",
+      "نشر نموذج بسيط"
+    ],
+    "prerequisites_ar": "أساسيات بايثون وإحصاء بمستوى المرحلة الثانوية",
+    "target_audience_ar": "المحللون والمطورون الراغبون في الانتقال إلى الذكاء الاصطناعي",
+    "career_opportunities_ar": [
+      "مهندس تعلم الآلة",
+      "عالم بيانات"
+    ],
+    "promotion_ar": "لا يوجد",
+    "accreditation_framework_ar": "لا يوجد اعتماد رسمي"
   },
   {
     "id": "C03",
@@ -99,7 +129,22 @@
     "country": "Egypt",
     "keywords": "generative ai llm rag agents chatbot prompt openai gpt ذكاء اصطناعي توليدي شات بوت وكلاء",
     "data_source": "SAMPLE DATA - replace with academy-approved catalog",
-    "updated": "2026-10-14"
+    "updated": "2026-10-14",
+    "description_ar": "بناء مساعدين ذكيين يعتمدون على الاسترجاع (RAG) وسير عمل متعدد الوكلاء باستخدام واجهات برمجة نماذج اللغة الحديثة.",
+    "learning_outcomes_ar": [
+      "تصميم الأوامر (Prompts) وأنظمة RAG",
+      "بناء وكلاء ذكاء اصطناعي",
+      "تقييم ومراقبة تطبيقات نماذج اللغة",
+      "إطلاق مساعد ذكي"
+    ],
+    "prerequisites_ar": "بايثون ومعرفة أساسية بتعلم الآلة",
+    "target_audience_ar": "المطورون والقادة التقنيون",
+    "career_opportunities_ar": [
+      "مهندس ذكاء اصطناعي",
+      "مطور تطبيقات نماذج اللغة"
+    ],
+    "promotion_ar": "خصم المجموعات: 10% عند حجز 3 مقاعد أو أكثر",
+    "accreditation_framework_ar": "لا يوجد اعتماد رسمي"
   },
   {
     "id": "C04",
@@ -133,7 +178,22 @@
     "country": "Egypt",
     "keywords": "web development react javascript html css frontend programming برمجة تطوير مواقع ويب جافاسكريبت",
     "data_source": "SAMPLE DATA - replace with academy-approved catalog",
-    "updated": "2026-10-14"
+    "updated": "2026-10-14",
+    "description_ar": "من HTML حتى تطبيق React منشور، مع استخدام Git.",
+    "learning_outcomes_ar": [
+      "بناء صفحات متجاوبة بـ HTML وCSS وJavaScript",
+      "إنشاء تطبيقات React",
+      "الربط مع واجهات REST API",
+      "نشر مشروع ضمن معرض الأعمال"
+    ],
+    "prerequisites_ar": "مهارات حاسب أساسية",
+    "target_audience_ar": "المبتدئون الراغبون في احتراف تطوير الويب",
+    "career_opportunities_ar": [
+      "مطور واجهات أمامية",
+      "مطور ويب"
+    ],
+    "promotion_ar": "لا يوجد",
+    "accreditation_framework_ar": "لا يوجد اعتماد رسمي"
   },
   {
     "id": "C05",
@@ -167,7 +227,22 @@
     "country": "Egypt",
     "keywords": "cybersecurity security hacking network protection soc أمن سيبراني امن المعلومات حماية شبكات",
     "data_source": "SAMPLE DATA - replace with academy-approved catalog",
-    "updated": "2026-10-14"
+    "updated": "2026-10-14",
+    "description_ar": "المفاهيم الأساسية للأمن السيبراني وأدواته وأساسيات الاستجابة للحوادث.",
+    "learning_outcomes_ar": [
+      "التعرف على التهديدات الشائعة",
+      "تأمين الأنظمة والشبكات",
+      "إجراء فحص أولي للثغرات",
+      "الاستجابة للحوادث الأمنية"
+    ],
+    "prerequisites_ar": "إلمام أساسي بالشبكات",
+    "target_audience_ar": "موظفو تقنية المعلومات والخريجون الراغبون في دخول مجال الأمن",
+    "career_opportunities_ar": [
+      "محلل مركز عمليات الأمن",
+      "مساعد أمن معلومات"
+    ],
+    "promotion_ar": "خصم 10% للطلاب",
+    "accreditation_framework_ar": "متوافقة مع كفاءات الأمن السيبراني الشائعة للمستوى المبتدئ (غير معتمدة رسميًا)"
   },
   {
     "id": "C06",
@@ -202,7 +277,22 @@
     "country": "Egypt",
     "keywords": "marketing digital social media ads seo facebook instagram تسويق رقمي اعلانات سوشيال ميديا",
     "data_source": "SAMPLE DATA - replace with academy-approved catalog",
-    "updated": "2026-10-14"
+    "updated": "2026-10-14",
+    "description_ar": "تدريب عملي على السوشيال ميديا وتحسين محركات البحث والإعلانات المدفوعة مع حملات حقيقية.",
+    "learning_outcomes_ar": [
+      "تخطيط حملات متعددة القنوات",
+      "كتابة نصوص إعلانية فعالة",
+      "استخدام SEO والتحليلات",
+      "قياس عائد الحملات"
+    ],
+    "prerequisites_ar": "لا يوجد",
+    "target_audience_ar": "رواد الأعمال والخريجون ومبتدئو التسويق",
+    "career_opportunities_ar": [
+      "مسوق رقمي",
+      "أخصائي سوشيال ميديا"
+    ],
+    "promotion_ar": "ورشة عمل إضافية هدية عند التسجيل عبر واتساب",
+    "accreditation_framework_ar": "لا يوجد اعتماد رسمي"
   },
   {
     "id": "C07",
@@ -236,7 +326,22 @@
     "country": "Egypt",
     "keywords": "project management pmp agile scrum planning risk إدارة مشاريع ادارة المشروعات",
     "data_source": "SAMPLE DATA - replace with academy-approved catalog",
-    "updated": "2026-10-14"
+    "updated": "2026-10-14",
+    "description_ar": "دورة موجهة للاختبار في إدارة المشاريع مع دراسات حالة.",
+    "learning_outcomes_ar": [
+      "تخطيط النطاق والوقت والتكلفة",
+      "إدارة المخاطر وأصحاب المصلحة",
+      "تطبيق المنهجيات المرنة والتقليدية",
+      "التحضير لاختبارات على نمط PMP"
+    ],
+    "prerequisites_ar": "سنتان خبرة عمل على الأقل",
+    "target_audience_ar": "قادة الفرق والراغبون في أن يصبحوا مديري مشاريع",
+    "career_opportunities_ar": [
+      "مدير مشروع",
+      "محلل مكتب إدارة المشاريع"
+    ],
+    "promotion_ar": "لا يوجد",
+    "accreditation_framework_ar": "تحضّر لاختبارات على نمط PMI (ليست دورة رسمية من PMI)"
   },
   {
     "id": "C08",
@@ -270,7 +375,22 @@
     "country": "Egypt",
     "keywords": "excel spreadsheets pivot formulas reporting accounting اكسل جداول محاسبة تقارير",
     "data_source": "SAMPLE DATA - replace with academy-approved catalog",
-    "updated": "2026-10-14"
+    "updated": "2026-10-14",
+    "description_ar": "مهارات إكسل عملية للتقارير والتحليل.",
+    "learning_outcomes_ar": [
+      "استخدام الدوال ودوال البحث",
+      "بناء الجداول المحورية",
+      "إنشاء لوحات معلومات",
+      "أتمتة التقارير"
+    ],
+    "prerequisites_ar": "لا يوجد",
+    "target_audience_ar": "موظفو المكاتب والمحاسبون",
+    "career_opportunities_ar": [
+      "محلل أعمال",
+      "مساعد مالي"
+    ],
+    "promotion_ar": "خصم 20% هذا الشهر",
+    "accreditation_framework_ar": "لا يوجد اعتماد رسمي"
   },
   {
     "id": "C09",
@@ -304,6 +424,21 @@
     "country": "Egypt",
     "keywords": "healthcare health informatics hospital medical ehr رعاية صحية معلوماتية صحية مستشفى طب",
     "data_source": "SAMPLE DATA - replace with academy-approved catalog",
-    "updated": "2026-10-14"
+    "updated": "2026-10-14",
+    "description_ar": "مقدمة في أنظمة تقنية المعلومات الصحية ومعايير البيانات والخصوصية.",
+    "learning_outcomes_ar": [
+      "فهم أنظمة السجلات الطبية الإلكترونية",
+      "تطبيق معايير البيانات الصحية",
+      "حماية خصوصية المرضى",
+      "تحليل البيانات السريرية"
+    ],
+    "prerequisites_ar": "لا يوجد",
+    "target_audience_ar": "العاملون في القطاع الصحي وفرق تقنية المعلومات بالمستشفيات",
+    "career_opportunities_ar": [
+      "مساعد معلوماتية صحية",
+      "منسق بيانات سريرية"
+    ],
+    "promotion_ar": "لا يوجد",
+    "accreditation_framework_ar": "لا يوجد اعتماد رسمي"
   }
 ]

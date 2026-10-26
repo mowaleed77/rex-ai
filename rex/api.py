@@ -2,10 +2,11 @@
 from uuid import uuid4
 from fastapi import FastAPI
 from pydantic import BaseModel
-from rex.assistant.engine import RexAssistant, Session
+from rex.assistant.engine import Session
+from rex.assistant.rag import RagAssistant
 
 app = FastAPI(title="REX AI", version="0.1.0")
-bot = RexAssistant()
+bot = RagAssistant()
 sessions: dict[str, Session] = {}
 
 class ChatIn(BaseModel):

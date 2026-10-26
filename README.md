@@ -46,3 +46,6 @@ tests/           Test cases
 
 ## Docs
 [Architecture](docs/ARCHITECTURE.md) · [WBS](docs/WBS.md) · [Team responsibilities](docs/TEAM.md) · [Agent specs](docs/AGENTS.md) · [Git workflow](docs/GIT_WORKFLOW.md) · [Sprint 1 checklist](docs/SPRINT1_CHECKLIST.md)
+
+## RAG + LLM
+See docs/RAG.md (set LLM_API_KEY in .env to enable the real LLM).

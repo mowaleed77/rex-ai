@@ -51,9 +51,10 @@ def test_lead_saved_only_with_consent(bot, tmp_path):
     s2 = Session(); chat(bot, s2, "excel", "beginner", "online", "yes", "Omar", "omar@example.com")
     assert "omar@example.com" in (tmp_path / "leads.csv").read_text(encoding="utf-8")
 
-def test_orchestrator_stub_and_unknown_agent():
+def test_orchestrator_rfp_agent_and_unknown_agent():
     o = Orchestrator()
-    assert not o.dispatch("rfp_research", {}).ok and not o.dispatch("nope", {}).ok
+    assert o.dispatch("rfp_research", {}).ok
+    assert not o.dispatch("nope", {}).ok
 
 def test_beginner_not_pushed_to_advanced_first(bot):
     s = Session(); r = chat(bot, s, "I want to learn AI", "beginner", "online")

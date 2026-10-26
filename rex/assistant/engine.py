@@ -46,6 +46,12 @@ class Session:
     stage: str = "chat"   # chat | consent | name | contact
     lead: dict = field(default_factory=dict)
     started: bool = False
+    history: list = field(default_factory=list)   # chat turns, used by the RAG/LLM assistant
+
+def loc(item: dict, field: str, ar: bool):
+    """Return the Arabic version of a data field when the user writes Arabic and it exists."""
+    return item.get(field + "_ar", item[field]) if ar else item[field]
+
 
 class RexAssistant:
     def __init__(self, kb: KnowledgeBase | None = None, leads_file: Path = LEADS_FILE):
@@ -55,7 +61,9 @@ class RexAssistant:
     def _t(self, key, s): return T[key][1 if s.lang == "ar" else 0]
     @staticmethod
     def _has(text, vocab): 
-        return bool(set(re.findall(r"\w+", normalize(text))) & set(re.findall(r"\w+", normalize(vocab))))
+        def words(s):  # normalise Arabic and drop the "ال" prefix so "السعر" matches "سعر"
+            return {w[2:] if w.startswith("ال") and len(w) > 4 else w for w in re.findall(r"\w+", normalize(s))}
+        return bool(words(text) & words(vocab))
 
     def _update_slots(self, s: Session, msg: str):
         for lvl, vocab in LEVELS.items():
@@ -74,7 +82,7 @@ class RexAssistant:
     def _course_question(self, s: Session, msg: str):
         n = normalize(msg); c = self.kb.find_course(msg) or (s.last_courses[0] if s.last_courses else None)
         asks = {
-          "price": "price cost fee fees much offer offers promotion discount سعر تكلفه رسوم عرض خصم بكام",
+          "price": "price cost fee fees much offer offers promotion discount سعر تكلفه رسوم عرض خصم بكام كام",
           "duration": "duration hours long مده ساعات format formats",
           "instructor": "instructor trainer teacher teaches teach مدرب محاضر",
           "prereq": "prerequisite prerequisites requirements متطلبات شروط",
@@ -87,15 +95,15 @@ class RexAssistant:
         if not c: return self._t("need_course", s) if self.kb.find_course(msg) is None and not s.interest else None
         ar = s.lang == "ar"; name = c["title_ar"] if ar else c["title_en"]
         if kind == "price":
-            promo = c["promotion"]; base = f"{name}: {c['price_egp']:,} EGP" if not ar else f"{name}: {c['price_egp']:,} جنيه"
-            return base + (f" — {promo}" if promo != "None" else "") 
+            promo = loc(c, "promotion", ar); none = "لا يوجد" if ar else "None"; base = f"{name}: {c['price_egp']:,} EGP" if not ar else f"{name}: {c['price_egp']:,} جنيه"
+            return base + (f" — {promo}" if promo != none else "") 
         if kind == "duration": return f"{name}: {c['duration_hours']} " + ("ساعة" if ar else "hours") + ", " + ", ".join(c["formats"])
         if kind == "instructor":
             i = self.kb.instructors[c["instructor_id"]]
-            return f"{name}: {i['title_ar'] if ar else i['name']} — {i['experience_years']} " + ("سنة خبرة. " if ar else "years of experience. ") + i["bio"]
-        if kind == "prereq": return f"{name}: " + c["prerequisites"]
-        if kind == "outcomes": return f"{name}: " + "; ".join(c["learning_outcomes"])
-        return f"{name}: " + c["target_audience"] + " | " + ", ".join(c["career_opportunities"])
+            return f"{name}: {i['title_ar'] if ar else i['name']} — {i['experience_years']} " + ("سنة خبرة. " if ar else "years of experience. ") + loc(i, "bio", ar)
+        if kind == "prereq": return f"{name}: " + loc(c, "prerequisites", ar)
+        if kind == "outcomes": return f"{name}: " + "; ".join(loc(c, "learning_outcomes", ar))
+        return f"{name}: " + loc(c, "target_audience", ar) + " | " + ", ".join(loc(c, "career_opportunities", ar))
 
     def _recommend(self, s: Session):
         hits = self.kb.search(" ".join(s.interest), top_k=8)
@@ -125,9 +133,9 @@ class RexAssistant:
             if s.level == c["level"]: why.append("مستواها " + LEVEL_AR[c["level"]] if ar else f"it's a {c['level']} course matching your level")
             if s.fmt and s.fmt in c["formats"]: why.append("متاحة " + {"online":"أونلاين","onsite":"حضوري","hybrid":"مدمج"}[s.fmt] if ar else f"available {s.fmt}")
             if s.budget and c["price_egp"] <= s.budget: why.append("ضمن ميزانيتك" if ar else "within your budget")
-            why.append(c["description"])
+            why.append(loc(c, "description", ar))
             if lvl(c) > 0:
-                why.append(("ملحوظة: مستواها أعلى من مستواك، والمتطلبات: " if ar else "Note: above your level — prerequisites: ") + c["prerequisites"])
+                why.append(("ملحوظة: مستواها أعلى من مستواك، والمتطلبات: " if ar else "Note: above your level — prerequisites: ") + loc(c, "prerequisites", ar))
             title = c["title_ar"] if ar else c["title_en"]
             price = f"{c['price_egp']:,} " + ("جنيه" if ar else "EGP")
             if ar: meta = f"{LEVEL_AR[c['level']]}، {c['duration_hours']} ساعة، {price}"
