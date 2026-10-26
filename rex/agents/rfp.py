@@ -1,28 +1,48 @@
+
 """RFP & Tender Research Agent (Egypt + Saudi Arabia only).
 
 Pipeline: validate -> country filter -> relevance filter -> expiry filter
 -> duplicate detection -> summary -> review routing -> optional CSV export.
-Every rejected item is reported with a reason, so filtering is demonstrable.
 """
+
 import csv
 import re
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from .base import Agent, AgentResult
 from .rfp_search import search_rfps
 
+
 COUNTRY_ALIASES = {
-    "egypt": "Egypt", "eg": "Egypt", "مصر": "Egypt",
-    "saudi arabia": "Saudi Arabia", "saudi": "Saudi Arabia", "ksa": "Saudi Arabia",
+    "egypt": "Egypt",
+    "eg": "Egypt",
+    "saudi arabia": "Saudi Arabia",
+    "saudi": "Saudi Arabia",
+    "ksa": "Saudi Arabia",
     "kingdom of saudi arabia": "Saudi Arabia",
-    "المملكة العربية السعودية": "Saudi Arabia", "السعودية": "Saudi Arabia",
+    "مصر": "Egypt",
+    "السعودية": "Saudi Arabia",
+    "المملكة العربية السعودية": "Saudi Arabia",
 }
 
 RELEVANT_KEYWORDS = (
-    "training", "education", "learning", "course", "curriculum", "capacity building",
-    "professional development", "digital transformation", "it ", "software", "technical",
-    "skills", "academy", "workshop", "تدريب", "تعليم", "تأهيل",
+    "training",
+    "education",
+    "learning",
+    "course",
+    "curriculum",
+    "capacity building",
+    "professional development",
+    "digital transformation",
+    "software",
+    "technical",
+    "skills",
+    "academy",
+    "workshop",
+    "تدريب",
+    "تعليم",
+    "تأهيل",
 )
 
 ROUTES = {
@@ -31,44 +51,82 @@ ROUTES = {
 }
 
 CSV_FIELDS = [
-    "title", "organization", "country", "deadline", "category", "source_url",
-    "publication_date", "eligibility", "review_route", "status", "summary",
+    "title",
+    "organization",
+    "country",
+    "deadline",
+    "category",
+    "source_url",
+    "publication_date",
+    "eligibility",
+    "review_route",
+    "status",
+    "summary",
 ]
 
 
 def _parse_date(value):
-    """Return a date, or None if missing/unparseable."""
     if not value:
         return None
-    try:
-        return date.fromisoformat(str(value).strip()[:10])
-    except ValueError:
-        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+
+    value = str(value).strip()
+    for fmt in (
+        "%Y-%m-%d",
+        "%d/%m/%Y",
+        "%m/%d/%Y",
+        "%d-%m-%Y",
+        "%Y/%m/%d",
+    ):
+        try:
+            return datetime.strptime(value[:10], fmt).date()
+        except ValueError:
+            pass
+    return None
 
 
 def _norm(text) -> str:
     return re.sub(r"\s+", " ", str(text or "").casefold()).strip()
 
 
+def _canonical_country(value):
+    return COUNTRY_ALIASES.get(_norm(value))
+
+
 class RfpAgent(Agent):
     name = "rfp_research"
 
-    ALLOWED_COUNTRIES = {"egypt", "saudi arabia"}
+    ALLOWED_COUNTRIES = {"egypt", "saudi arabia", "ksa"}
 
     def run(self, task: dict) -> AgentResult:
-        country = str(task.get("country", "")).strip()
-        topic = str(task.get("topic", "education and technology")).strip()
-
-        if country and country.lower() not in self.ALLOWED_COUNTRIES:
+        if not isinstance(task, dict):
             return AgentResult(
                 agent=self.name,
                 ok=False,
-                message="Only Egypt and Saudi Arabia are supported."
+                message="Task must be a dictionary.",
             )
+
+        country = str(task.get("country", "")).strip()
+        topic = str(
+            task.get("topic", "education and technology")
+        ).strip() or "education and technology"
+
+        requested_country = _canonical_country(country)
+
+        if country and requested_country is None:
+            return AgentResult(
+                agent=self.name,
+                ok=False,
+                message="Only Egypt and Saudi Arabia are supported.",
+            )
+
         opportunities = task.get("opportunities")
 
         if opportunities is None:
-            if not country:
+            if not requested_country:
                 return AgentResult(
                     agent=self.name,
                     ok=True,
@@ -80,126 +138,184 @@ class RfpAgent(Agent):
                     message="Provide a country to search for RFP opportunities.",
                 )
 
-            search_result = search_rfps(
-                "Egypt" if country.lower() == "egypt" else "Saudi Arabia",
-                topic
-            )
-
-            if not search_result["ok"]:
+            try:
+                search_result = search_rfps(requested_country, topic)
+            except Exception as error:
                 return AgentResult(
                     agent=self.name,
                     ok=False,
                     output={"opportunities": [], "count": 0},
-                    message=search_result["message"]
+                    message=f"RFP search failed: {error}",
                 )
 
-            opportunities = search_result["opportunities"]
+            if not isinstance(search_result, dict):
+                return AgentResult(
+                    agent=self.name,
+                    ok=False,
+                    output={"opportunities": [], "count": 0},
+                    message="RFP search returned an invalid response.",
+                )
+
+            if not search_result.get("ok"):
+                return AgentResult(
+                    agent=self.name,
+                    ok=False,
+                    output={"opportunities": [], "count": 0},
+                    message=search_result.get("message", "RFP search failed."),
+                )
+
+            opportunities = search_result.get("opportunities", [])
 
         if not isinstance(opportunities, list):
             return AgentResult(
-                agent=self.name, ok=False,
+                agent=self.name,
+                ok=False,
                 message="Opportunities must be provided as a list.",
             )
 
         today = _parse_date(task.get("today")) or date.today()
-        accepted, rejected, seen = [], [], set()
+        accepted = []
+        rejected = []
+        seen_urls = set()
+        seen_records = set()
 
         for item in opportunities:
             if not isinstance(item, dict):
+                rejected.append({"reason": "invalid opportunity"})
                 continue
-            title = str(item.get("title", "")).strip()
-            url = str(item.get("source_url", "")).strip()
 
-            def reject(reason, _title=title):
-                rejected.append({"title": _title, "reason": reason})
+            opportunity = dict(item)
+            title = str(opportunity.get("title", "")).strip()
+            source_url = str(opportunity.get("source_url", "")).strip()
+            organization = str(
+                opportunity.get("organization", "")
+            ).strip()
+            item_country = _canonical_country(
+                opportunity.get("country", "")
+            )
 
-            item_country = str(
-                item.get("country", country)
+            if not title or not source_url:
+                rejected.append({
+                    "title": title,
+                    "reason": "missing title or source URL",
+                })
+                continue
+
+            if not item_country:
+                rejected.append({
+                    "title": title,
+                    "reason": "unsupported or missing country",
+                })
+                continue
+
+            if requested_country and item_country != requested_country:
+                rejected.append({
+                    "title": title,
+                    "reason": "country mismatch",
+                })
+                continue
+
+            searchable_text = " ".join(
+                str(opportunity.get(field, ""))
+                for field in ("title", "description", "category", "summary")
+            )
+            normalized_text = _norm(searchable_text)
+
+            if not any(
+                _norm(keyword) in normalized_text
+                for keyword in RELEVANT_KEYWORDS
+            ):
+                rejected.append({
+                    "title": title,
+                    "reason": "unrelated topic",
+                })
+                continue
+
+            deadline = _parse_date(opportunity.get("deadline"))
+            if deadline and deadline < today:
+                rejected.append({
+                    "title": title,
+                    "reason": "expired deadline",
+                })
+                continue
+
+            normalized_url = _norm(source_url).rstrip("/")
+            record_key = (
+                _norm(title),
+                _norm(organization),
+                item_country,
+            )
+
+            if normalized_url in seen_urls or record_key in seen_records:
+                rejected.append({
+                    "title": title,
+                    "reason": "duplicate",
+                })
+                continue
+
+            seen_urls.add(normalized_url)
+            seen_records.add(record_key)
+
+            opportunity["title"] = title
+            opportunity["source_url"] = source_url
+            opportunity["organization"] = organization
+            opportunity["country"] = item_country
+            opportunity["review_route"] = ROUTES[item_country]
+            opportunity["status"] = "requires_verification"
+            opportunity["summary"] = str(
+                opportunity.get("description")
+                or opportunity.get("summary")
+                or title
             ).strip()
 
-            if item_country.lower() not in self.ALLOWED_COUNTRIES:
-                continue
+            accepted.append(opportunity)
 
-            # 2. traceability: need a title and a source link
-            if not title or not url:
-                reject("missing title or source_url")
-                continue
-
-            # 3. relevance (education / training)
-            haystack = _norm(f"{title} {item.get('description', '')} {item.get('category', '')} ") + " "
-            if not any(k in haystack for k in RELEVANT_KEYWORDS):
-                reject("not education/training related")
-                continue
-
-            # 4. expired
-            deadline = _parse_date(item.get("deadline"))
-            if deadline and deadline < today:
-                reject(f"expired on {deadline.isoformat()}")
-                continue
-
-            # 5. duplicates (same link, or same title+issuer+country)
-            keys = {("url", _norm(url)),
-                    ("tuple", _norm(title), _norm(item.get("organization")), country)}
-            if keys & seen:
-                reject("duplicate")
-                continue
-            seen |= keys
-
-            org = str(item.get("organization", "")).strip()
-            eligibility = str(item.get("eligibility", "")).strip()
-            days_left = (deadline - today).days if deadline else None
-
-            accepted.append({
-                "title": title,
-                "country": (
-                    "Egypt" if item_country.lower() == "egypt"
-                    else "Saudi Arabia"
-                ),
-                "review_route": ROUTES[country],
-                "status": "requires_verification",
-            })
-
-        # Egypt first (flagged for immediate review), then by nearest deadline
-        accepted.sort(key=lambda o: (o["country"] != "Egypt", o["deadline"] or "9999"))
-
-        csv_path = task.get("csv_path")
-        if csv_path:
-            self._export_csv(accepted, Path(csv_path))
-
-        return AgentResult(
-            agent=self.name, ok=True,
-            output={
-                "opportunities": accepted,
-                "count": len(accepted),
-                "rejected": rejected,
-                "rejected_count": len(rejected),
-                "flagged_for_immediate_review": [
-                    o["title"] for o in accepted if o["country"] == "Egypt"
-                ],
-                "monitored_pipeline": [
-                    o["title"] for o in accepted if o["country"] == "Saudi Arabia"
-                ],
-                "supported_countries": ["Egypt", "Saudi Arabia"],
-            },
-            message=(
-                f"Processed {len(accepted)} eligible opportunities "
-                f"({len(rejected)} rejected). "
-                "Verify each opportunity against its original source."
-            ),
-            sources=[item["source_url"] for item in results]
+        # Always list Egypt before Saudi Arabia.
+        accepted.sort(
+            key=lambda item: (
+                0 if item["country"] == "Egypt" else 1,
+                item["title"].casefold(),
+            )
         )
 
-    @staticmethod
-    def _summary(title, org, country, deadline, days_left):
-        who = f" issued by {org}" if org else ""
-        when = (f" Deadline {deadline.isoformat()} ({days_left} days left)."
-                if deadline else " Deadline not stated.")
-        return f"{title}{who} in {country}.{when}"
+        output = {
+            "opportunities": accepted,
+            "count": len(accepted),
+            "rejected": rejected,
+            "rejected_count": len(rejected),
+            "supported_countries": ["Egypt", "Saudi Arabia"],
+        }
 
-    @staticmethod
-    def _export_csv(rows, path: Path):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(rows)
+        csv_path = task.get("csv_path") or task.get("export_csv")
+
+        if csv_path:
+            try:
+                path = Path(csv_path)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with path.open(
+                    "w",
+                    newline="",
+                    encoding="utf-8-sig",
+                ) as csv_file:
+                    writer = csv.DictWriter(
+                        csv_file,
+                        fieldnames=CSV_FIELDS,
+                        extrasaction="ignore",
+                    )
+                    writer.writeheader()
+                    writer.writerows(accepted)
+                output["csv_path"] = str(path)
+            except (OSError, ValueError) as error:
+                output["csv_error"] = str(error)
+
+        return AgentResult(
+            agent=self.name,
+            ok=True,
+            output=output,
+            message=(
+                f"Processed {len(opportunities)} opportunities: "
+                f"{len(accepted)} accepted, {len(rejected)} rejected."
+            ),
+            sources=[item["source_url"] for item in accepted],
+        )
+
