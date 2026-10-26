@@ -1,97 +1,117 @@
-"""RagAssistant = REX Assistant with retrieval (RAG) + a real LLM.
 
-Per message:  retrieve the most relevant academy documents -> put them in the prompt as the ONLY
-allowed source of facts -> ask the LLM -> return its answer plus the sources used.
+"""REX Assistant with retrieval-augmented generation (RAG) and an LLM."""
 
-Safety nets (the demo can never break):
-  * no API key, or the LLM call fails  -> falls back to the rule-based RexAssistant
-  * consent / lead capture stays deterministic (same flow as the rule-based bot)
-Drop-in replacement: same `reply(session, message)` API as RexAssistant."""
-import re
-
-from rex.rag.llm import LLMClient, LLMError
+from rex.rag.llm import LLMClient
 from rex.rag.retriever import Retriever
-from .engine import RexAssistant, Session, T, YES, NO
-from .text import is_arabic, normalize
+from .engine import RexAssistant, Session
+from .text import is_arabic
 
-SYSTEM_PROMPT = """You are REX, the course assistant of a training academy. You help potential students (leads) choose the right course.
 
-RULES
-0. You ONLY discuss this academy, its courses, prices, instructors, admission and choosing a course. For ANY unrelated request (cooking, recipes, general knowledge, coding help, news, etc.) do NOT answer it: say in one friendly sentence that you can only help with the academy's courses, then ask what the learner would like to study. Never answer from general knowledge.Greetings and small talk are fine: greet back warmly in one sentence and ask what the learner would like to study.
-1. Use ONLY the facts in the CONTEXT below (academy-approved documents). Never invent courses, prices, dates, instructors, offers or accreditation. If the answer is not in the CONTEXT, say you don't have that information and suggest contacting admissions.
-2. Reply in the same language as the user's last message (Arabic or English). For Arabic use simple Egyptian-friendly Modern Standard Arabic.
-3. Before recommending, make sure you know the learner's interest and level. If something important is missing, ask ONE or TWO short follow-up questions (background, level, goals, online/onsite, budget, time available) instead of recommending right away.
-4. When you recommend, suggest at most 3 courses and explain why each fits (level, goals, format, budget). If a course is above the learner's level, say so and mention its prerequisites.
-5. Prices are in EGP (جنيه). Quote prices, durations, offers and prerequisites exactly as written in the CONTEXT.
-6. Never claim a course is officially accredited unless the CONTEXT says so.
-7. Keep answers short and friendly. Use a numbered list for recommendations.
-8. If the user wants to register or be contacted, tell them you can pass their details to admissions (you will ask for their consent first)."""
-
-LEAD_WORDS = "register enroll signup contact call me follow admissions سجلني اسجل تسجيل تواصل كلمني اتصل"
+SYSTEM_PROMPT = """You are REX AI, a helpful bilingual assistant for a training academy.
+Answer in the same language as the user's latest message.
+Use the supplied academy documents as the source of factual information.
+Never invent course names, prices, durations, instructors, or prerequisites.
+If information is missing, say that you do not have it.
+Keep answers friendly, clear, and concise.
+Use conversation history to understand short answers such as "beginner"
+or a course topic. Do not repeat questions the user has already answered.
+When the user gives their level or preferred topic, use that information
+to continue toward a suitable course recommendation.
+"""
 
 
 class RagAssistant:
-    def __init__(self, retriever: Retriever | None = None, llm=None, fallback: RexAssistant | None = None, use_env_llm: bool = True):
-        self.retriever = retriever or Retriever()
-        self.fallback = fallback or RexAssistant()
-        self.llm = llm if llm is not None else (LLMClient.from_env() if use_env_llm else None)
+    def __init__(
+        self,
+        retriever=None,
+        llm=None,
+        fallback=None,
+        use_env_llm=True,
+    ):
+        self.retriever = retriever if retriever is not None else Retriever()
+        self.fallback = fallback if fallback is not None else RexAssistant()
+        self.llm = llm
+        self.llm_enabled = llm is not None
 
-    @property
-    def llm_enabled(self) -> bool:
-        return self.llm is not None
+        if self.llm is None and use_env_llm:
+            try:
+                self.llm = LLMClient()
+                self.llm_enabled = self.llm is not None
+            except Exception:
+                self.llm = None
+                self.llm_enabled = False
 
-    # ---- helpers
+    def _build_messages(
+        self,
+        session: Session,
+        message: str,
+        chunks: list,
+    ) -> list:
+        context = "\n\n".join(
+            f"[{chunk.doc_id} | {chunk.title}]\n{chunk.text}"
+            for chunk in chunks
+        )
+
+        system_content = SYSTEM_PROMPT
+
+        if context:
+            system_content += (
+                "\n\nCONTEXT\n"
+                "Use the following retrieved academy documents as factual context:\n\n"
+                + context
+            )
+
+        messages = [
+            {"role": "system", "content": system_content}
+        ]
+
+        history = getattr(session, "history", [])
+        messages.extend(history[-8:])
+        messages.append({"role": "user", "content": message})
+
+        return messages
+
     @staticmethod
-    def _words(text):
-        return set(re.findall(r"\w+", normalize(text)))
+    def _sources_line(chunks: list, arabic: bool) -> str:
+        titles = []
 
-    def _query(self, s: Session, msg: str) -> str:
-        """Current message plus the user's recent turns, so 'how much is it?' still finds the course."""
-        recent = [h["content"] for h in s.history if h["role"] == "user"][-2:]
-        return " ".join(recent + [msg])
+        for chunk in chunks:
+            title = getattr(chunk, "title", None)
+            if title and title not in titles:
+                titles.append(title)
 
-    def _build_messages(self, s: Session, msg: str, chunks):
-        context = "\n\n".join(f"[{c.doc_id}] {c.title}\n{c.text}" for c in chunks) or "(no relevant documents found)"
-        profile = {k: v for k, v in {"level": s.level, "format": s.fmt, "budget_egp": s.budget}.items() if v}
-        system = SYSTEM_PROMPT + (f"\n\nKNOWN LEARNER PROFILE: {profile}" if profile else "") + f"\n\nCONTEXT\n{context}"
-        return [{"role": "system", "content": system}, *s.history[-8:], {"role": "user", "content": msg}]
-
-    @staticmethod
-    def _sources_line(chunks, ar: bool) -> str:
-        titles = list(dict.fromkeys(c.title for c in chunks if c.score > 0))[:4]
         if not titles:
             return ""
-        return ("\n\n📚 المصادر: " if ar else "\n\n📚 Sources: ") + (" · ".join(titles) if titles else "—")
 
-    # ---- main entry
-    def reply(self, s: Session, msg: str) -> str:
-        msg = msg.strip()
-        if not msg:
-            return self.fallback.reply(s, msg)
-        words = self._words(msg)
+        label = "📚 المصادر: " if arabic else "📚 Sources: "
+        return "\n\n" + label + " · ".join(titles[:4])
 
-        # consent / lead capture is deterministic and identical to the rule-based bot
-        if s.stage in ("name", "contact") or (s.stage == "consent" and len(words) <= 2 and words & ({normalize(w) for w in YES} | {normalize(w) for w in NO})):
-            s.lang = "ar" if is_arabic(msg) else "en"
-            return self.fallback.reply(s, msg)
-        if self.llm is None:
-            return self.fallback.reply(s, msg)
-
-        s.lang = "ar" if is_arabic(msg) else "en"
-        ar = s.lang == "ar"
-        self.fallback._update_slots(s, msg)  # keep level / format / budget for lead rows and the prompt
-
-        chunks = self.retriever.search(self._query(s, msg), k=4)
-        s.last_courses = [c for c in self.fallback.kb.courses if c["id"] in {x.course_id for x in chunks if x.course_id}][:3] or s.last_courses
-
-        if self._words(LEAD_WORDS) & words and s.last_courses:
-            s.stage = "consent"
-            return self.fallback._t("consent", s)
+    def reply(self, session: Session, message: str) -> str:
+        arabic = is_arabic(message)
+        session.lang = "ar" if arabic else "en"
 
         try:
-            answer = self.llm(self._build_messages(s, msg, chunks))
-        except LLMError:
-            return self.fallback.reply(s, msg)  # graceful fallback, never a crash
+            chunks = self.retriever.search(message, k=4)
+        except Exception:
+            chunks = []
 
-        s.history += [{"role": "user", "content": msg}, {"role": "assistant", "content": answer}]
-        return answer + self._sources_line(chunks, ar)
+        if not self.llm_enabled or self.llm is None:
+            return self.fallback.reply(session, message)
+
+        try:
+            answer = self.llm(
+                self._build_messages(session, message, chunks)
+            )
+        except Exception:
+            return self.fallback.reply(session, message)
+
+        if not isinstance(answer, str):
+            answer = str(answer)
+
+        session.history += [
+            {"role": "user", "content": message},
+            {"role": "assistant", "content": answer},
+        ]
+
+        return answer + self._sources_line(chunks, arabic)
+

@@ -1,21 +1,25 @@
+
 """Demo UI: streamlit run apps/streamlit_app.py"""
-import sys, pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))  # lets Python find the `rex` package
+
+import sys
+import pathlib
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 import streamlit as st
 from rex.assistant.engine import Session
 from rex.assistant.rag import RagAssistant
 
+
 st.set_page_config(
     page_title="REX AI | Smart Academy",
     page_icon="🎓",
-    layout="centered"
+    layout="centered",
 )
 
 st.markdown(
     """
     <style>
-    /* Dark theme */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"],
     [data-testid="stBottom"], [data-testid="stBottom"] > div,
     [data-testid="stBottomBlockContainer"] {
@@ -42,7 +46,6 @@ st.markdown(
         padding: 12px;
     }
 
-    /* Per-paragraph direction: Arabic replies align right-to-left, English left-to-right */
     .stChatMessage p, .stChatMessage li {
         unicode-bidi: plaintext;
         text-align: start;
@@ -75,10 +78,14 @@ st.markdown(
     [data-testid="stChatMessageContent"] p {
         color: #e5e7eb !important;
     }
-    [data-testid='stSidebar']{background:#141824;color:#e6e6e6}
-</style>
+
+    [data-testid="stSidebar"] {
+        background-color: #141824;
+        color: #e6e6e6;
+    }
+    </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 st.title("🎓 REX AI | Smart Academy")
@@ -87,23 +94,35 @@ st.caption("Your bilingual assistant for academy courses")
 if "bot" not in st.session_state:
     st.session_state.bot = RagAssistant()
 
-with st.sidebar:
-    st.markdown("### ⚙️ REX status")
-    if st.session_state.bot.llm_enabled:
-        st.success(f"LLM + RAG on · {st.session_state.bot.llm.model}")
-    else:
-        st.warning("No LLM key: rule-based mode. Put LLM_API_KEY in .env")
-    st.caption(f"{len(st.session_state.bot.retriever.chunks)} knowledge documents loaded")
-
 if "session" not in st.session_state:
     st.session_state.session = Session()
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+bot = st.session_state.bot
+
+with st.sidebar:
+    st.markdown("### ⚙️ REX status")
+
+    llm = bot.llm
+
+    if bot.llm_enabled and llm is not None:
+        st.success(f"LLM + RAG on - {llm.model}")
+    else:
+        st.warning("Rule-based mode: LLM is unavailable.")
+
+    st.caption(
+        f"{len(bot.retriever.chunks)} knowledge documents loaded"
+    )
+
+    st.divider()
+    st.markdown("**Supported languages**")
+    st.write("English and Arabic")
+
 
 def show(text):
-    # keep the bot's line breaks (markdown ignores single newlines)
+    """Display a message while preserving line breaks."""
     st.markdown(text.replace("\n", "  \n"))
 
 
@@ -112,7 +131,8 @@ if not st.session_state.messages:
         """
         ### Welcome to REX AI!
 
-        Ask me about courses, prices, duration, prerequisites, and career opportunities.
+        Ask me about courses, prices, duration, prerequisites,
+        and career opportunities.
 
         **مرحباً بك في REX AI!**
 
@@ -137,15 +157,16 @@ if question:
     with st.chat_message("assistant"):
         with st.spinner("REX AI is thinking..."):
             try:
-                response = st.session_state.bot.reply(
+                response = bot.reply(
                     st.session_state.session,
-                    question
+                    question,
                 )
-            except Exception as error:
-                response = f"Sorry, something went wrong: {error}"
-
-        if not isinstance(response, str):
-            response = str(response)
+                if not isinstance(response, str):
+                    response = str(response)
+            except Exception:
+                response = (
+                    "Sorry, something went wrong. Please try again."
+                )
 
         show(response)
 
