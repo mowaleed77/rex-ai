@@ -4,11 +4,11 @@ Graduation project (Oct 10 – Nov 5, 2026). REX AI automates core academy opera
 
 | # | Agent | Status |
 |---|-------|--------|
-| 1 | **REX Assistant** – course recommendation chatbot (AR/EN) | ✅ Sprint 1 prototype |
-| 2 | RFP & Tender Research (Egypt + Saudi Arabia only) | ⏳ Sprint 2 (stub) |
-| 3 | Curriculum & Accreditation Alignment | ⏳ Sprint 2 (stub) |
-| 4 | Document Generation (PDF) | ⏳ Sprint 2 (stub) |
-| 5 | Marketing | ⏳ Sprint 2 (stub) |
+| 1 | **REX Assistant** – course recommendation chatbot (AR/EN, RAG + LLM) | ✅ Sprint 2 |
+| 2 | **RFP & Tender Research** (Egypt + Saudi Arabia only) | ✅ Sprint 2 – country/expiry/duplicate/relevance filters, Egypt vs Saudi routing, CSV export |
+| 3 | **Curriculum & Accreditation Alignment** | ✅ Sprint 2 – generation + gap analysis (LLM enrichment planned) |
+| 4 | **Document Generation (PDF)** | ✅ Sprint 2 – 3 PDF document types |
+| 5 | **Marketing** | ✅ Sprint 2 – multi-channel content, admin approval required |
 
 > **Data note:** `data/*.json` is **sample data** for development. Replace it with the academy's approved catalog (same fields) — generate/edit via `data/build_kb.py` or edit the JSON directly.
 

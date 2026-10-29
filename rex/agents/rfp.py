@@ -10,6 +10,7 @@ from datetime import date
 from pathlib import Path
 
 from .base import Agent, AgentResult
+from .rfp_search import search_rfps
 
 COUNTRY_ALIASES = {
     "egypt": "Egypt", "eg": "Egypt", "مصر": "Egypt",
@@ -55,7 +56,45 @@ class RfpAgent(Agent):
     ALLOWED_COUNTRIES = {"egypt", "saudi arabia"}
 
     def run(self, task: dict) -> AgentResult:
-        opportunities = task.get("opportunities", [])
+        country = str(task.get("country", "")).strip()
+        topic = str(task.get("topic", "education and technology")).strip()
+
+        if country and country.lower() not in self.ALLOWED_COUNTRIES:
+            return AgentResult(
+                agent=self.name,
+                ok=False,
+                message="Only Egypt and Saudi Arabia are supported."
+            )
+        opportunities = task.get("opportunities")
+
+        if opportunities is None:
+            if not country:
+                return AgentResult(
+                    agent=self.name,
+                    ok=True,
+                    output={
+                        "opportunities": [],
+                        "count": 0,
+                        "supported_countries": ["Egypt", "Saudi Arabia"],
+                    },
+                    message="Provide a country to search for RFP opportunities.",
+                )
+
+            search_result = search_rfps(
+                "Egypt" if country.lower() == "egypt" else "Saudi Arabia",
+                topic
+            )
+
+            if not search_result["ok"]:
+                return AgentResult(
+                    agent=self.name,
+                    ok=False,
+                    output={"opportunities": [], "count": 0},
+                    message=search_result["message"]
+                )
+
+            opportunities = search_result["opportunities"]
+
         if not isinstance(opportunities, list):
             return AgentResult(
                 agent=self.name, ok=False,
@@ -74,10 +113,11 @@ class RfpAgent(Agent):
             def reject(reason, _title=title):
                 rejected.append({"title": _title, "reason": reason})
 
-            # 1. strict geographic rule
-            country = COUNTRY_ALIASES.get(_norm(item.get("country")))
-            if not country:
-                reject("outside Egypt/Saudi Arabia")
+            item_country = str(
+                item.get("country", country)
+            ).strip()
+
+            if item_country.lower() not in self.ALLOWED_COUNTRIES:
                 continue
 
             # 2. traceability: need a title and a source link
@@ -111,20 +151,9 @@ class RfpAgent(Agent):
 
             accepted.append({
                 "title": title,
-                "country": country,
-                "organization": org,
-                "deadline": str(item.get("deadline", "") or ""),
-                "days_left": days_left,
-                "category": str(item.get("category", "") or ""),
-                "publication_date": str(item.get("publication_date", "") or ""),
-                "eligibility": eligibility,
-                "documents": item.get("documents", []),
-                "description": str(item.get("description", "") or ""),
-                "source_url": url,
-                "summary": self._summary(title, org, country, deadline, days_left),
-                "eligibility_assessment": (
-                    "needs_manual_review" if eligibility
-                    else "unknown - eligibility not provided"
+                "country": (
+                    "Egypt" if item_country.lower() == "egypt"
+                    else "Saudi Arabia"
                 ),
                 "review_route": ROUTES[country],
                 "status": "requires_verification",
@@ -157,7 +186,7 @@ class RfpAgent(Agent):
                 f"({len(rejected)} rejected). "
                 "Verify each opportunity against its original source."
             ),
-            sources=[o["source_url"] for o in accepted],
+            sources=[item["source_url"] for item in results]
         )
 
     @staticmethod
