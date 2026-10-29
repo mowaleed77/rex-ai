@@ -124,10 +124,10 @@ class RagAssistant:
         system = SYSTEM_PROMPT
 
         if context:
-            system += "\n\nRetrieved academy documents:\n" + context
+            system += "\n\nCONTEXT:\n" + context
         else:
             system += (
-                "\n\nNo relevant documents were retrieved. "
+                "\n\nCONTEXT:\nNo relevant documents were retrieved. "
                 "Do not invent academy facts."
             )
 
@@ -207,12 +207,14 @@ class RagAssistant:
             key = id(session)
             history = self.history.setdefault(key, [])
 
-            history.extend(
-                [
-                    {"role": "user", "content": message},
-                    {"role": "assistant", "content": answer},
-                ]
-            )
+            conversation_turn = [
+                {"role": "user", "content": message},
+                {"role": "assistant", "content": answer},
+            ]
+
+            history.extend(conversation_turn)
+            session.history.extend(conversation_turn)
+            
 
             if self.max_history_messages:
                 self.history[key] = history[-self.max_history_messages:]

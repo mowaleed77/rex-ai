@@ -100,6 +100,7 @@ T = {
 @dataclass
 class Session:
     lang: str = "en"
+    history: list[dict] = field(default_factory=list)
     interest: list[str] = field(default_factory=list)
     level: str | None = None
     fmt: str | None = None

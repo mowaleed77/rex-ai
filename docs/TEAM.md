@@ -1,6 +1,3 @@
-# Team Responsibilities
-
-## Project
 
 REX AI – Smart Academy Multi-Agent System
 
@@ -33,3 +30,4 @@ REX AI – Smart Academy Multi-Agent System
 - Changes are committed with descriptive messages.
 - Pull Requests are reviewed before merging.
 - Both members test their changes and document their contributions.
+
