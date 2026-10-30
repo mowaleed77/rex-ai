@@ -1,4 +1,3 @@
-
 """RFP & Tender Research Agent (Egypt + Saudi Arabia only).
 
 Pipeline: [online discovery] -> validate -> country filter -> relevance filter
@@ -110,6 +109,10 @@ class RfpAgent(Agent):
                 rejected.append({"reason": "invalid opportunity"})
                 continue
 
+            # Extract fields first so they exist in scope for reject()
+            title = str(item.get("title", "")).strip()
+            url = str(item.get("url", item.get("source_url", ""))).strip()
+
             def reject(reason, _title=title, _url=url):
                 rejected.append({"title": _title, "source_url": _url, "reason": reason})
 
@@ -181,27 +184,38 @@ class RfpAgent(Agent):
             except Exception as exc:
                 discovery["errors"].append(f"notifier failed: {exc}")
 
-        csv_path = task.get("csv_path")
+        output = {
+            "opportunities": accepted,
+            "count": len(accepted),
+            "new_count": len(new_items),
+            "rejected": rejected,
+            "rejected_count": len(rejected),
+            "flagged_for_immediate_review": [
+                o["title"] for o in accepted if o["country"] == "Egypt"
+            ],
+            "monitored_pipeline": [
+                o["title"] for o in accepted if o["country"] == "Saudi Arabia"
+            ],
+            "supported_countries": ["Egypt", "Saudi Arabia"],
+            "discovery": discovery,
+        }
+
+        csv_path = task.get("csv_path") or task.get("export_csv")
         if csv_path:
-            self._export_csv(accepted, Path(csv_path))
+            try:
+                path = Path(csv_path)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with path.open("w", newline="", encoding="utf-8-sig") as csv_file:
+                    writer = csv.DictWriter(csv_file, fieldnames=CSV_FIELDS, extrasaction="ignore")
+                    writer.writeheader()
+                    writer.writerows(accepted)
+                output["csv_path"] = str(path)
+            except (OSError, ValueError) as error:
+                output["csv_error"] = str(error)
 
         return AgentResult(
             agent=self.name, ok=True,
-            output={
-                "opportunities": accepted,
-                "count": len(accepted),
-                "new_count": len(new_items),
-                "rejected": rejected,
-                "rejected_count": len(rejected),
-                "flagged_for_immediate_review": [
-                    o["title"] for o in accepted if o["country"] == "Egypt"
-                ],
-                "monitored_pipeline": [
-                    o["title"] for o in accepted if o["country"] == "Saudi Arabia"
-                ],
-                "supported_countries": ["Egypt", "Saudi Arabia"],
-                "discovery": discovery,
-            },
+            output=output,
             message=(
                 f"Processed {len(accepted)} eligible opportunities "
                 f"({len(new_items)} new, {len(rejected)} rejected"
@@ -237,36 +251,3 @@ class RfpAgent(Agent):
         when = (f" Deadline {deadline.isoformat()} ({days_left} days left)."
                 if deadline else " Deadline not stated.")
         return f"{title}{who} in {country}.{when}"
-
-        csv_path = task.get("csv_path") or task.get("export_csv")
-
-        if csv_path:
-            try:
-                path = Path(csv_path)
-                path.parent.mkdir(parents=True, exist_ok=True)
-                with path.open(
-                    "w",
-                    newline="",
-                    encoding="utf-8-sig",
-                ) as csv_file:
-                    writer = csv.DictWriter(
-                        csv_file,
-                        fieldnames=CSV_FIELDS,
-                        extrasaction="ignore",
-                    )
-                    writer.writeheader()
-                    writer.writerows(accepted)
-                output["csv_path"] = str(path)
-            except (OSError, ValueError) as error:
-                output["csv_error"] = str(error)
-
-        return AgentResult(
-            agent=self.name,
-            ok=True,
-            output=output,
-            message=(
-                f"Processed {len(opportunities)} opportunities: "
-                f"{len(accepted)} accepted, {len(rejected)} rejected."
-            ),
-            sources=[item["source_url"] for item in accepted],
-        )
