@@ -1,3 +1,4 @@
+
 """RFP & Tender Research Agent (Egypt + Saudi Arabia only).
 
 Pipeline: [online discovery] -> validate -> country filter -> relevance filter
@@ -13,21 +14,28 @@ Task keys:
   csv_path      : str          export accepted items
   store_path    : str          JSON file remembering seen URLs -> flags new items
 """
+
 import csv
 import json
 import re
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from rex.agents.rfp_sources import TavilySearch, parse_date
 from .base import Agent, AgentResult
 from .rfp_search import search_rfps
 
+
 COUNTRY_ALIASES = {
-    "egypt": "Egypt", "eg": "Egypt", "مصر": "Egypt",
-    "saudi arabia": "Saudi Arabia", "saudi": "Saudi Arabia", "ksa": "Saudi Arabia",
+    "egypt": "Egypt",
+    "eg": "Egypt",
+    "saudi arabia": "Saudi Arabia",
+    "saudi": "Saudi Arabia",
+    "ksa": "Saudi Arabia",
     "kingdom of saudi arabia": "Saudi Arabia",
-    "المملكة العربية السعودية": "Saudi Arabia", "السعودية": "Saudi Arabia",
+    "مصر": "Egypt",
+    "السعودية": "Saudi Arabia",
+    "المملكة العربية السعودية": "Saudi Arabia",
 }
 
 _RELEVANT_RE = re.compile(
@@ -69,7 +77,8 @@ class RfpAgent(Agent):
         opportunities = task.get("opportunities", [])
         if not isinstance(opportunities, list):
             return AgentResult(
-                agent=self.name, ok=False,
+                agent=self.name,
+                ok=False,
                 message="Opportunities must be provided as a list.",
             )
 
@@ -98,9 +107,8 @@ class RfpAgent(Agent):
 
         for item in opportunities:
             if not isinstance(item, dict):
+                rejected.append({"reason": "invalid opportunity"})
                 continue
-            title = str(item.get("title", "")).strip()
-            url = str(item.get("source_url", "")).strip()
 
             def reject(reason, _title=title, _url=url):
                 rejected.append({"title": _title, "source_url": _url, "reason": reason})
@@ -230,10 +238,35 @@ class RfpAgent(Agent):
                 if deadline else " Deadline not stated.")
         return f"{title}{who} in {country}.{when}"
 
-    @staticmethod
-    def _export_csv(rows, path: Path):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(rows)
+        csv_path = task.get("csv_path") or task.get("export_csv")
+
+        if csv_path:
+            try:
+                path = Path(csv_path)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with path.open(
+                    "w",
+                    newline="",
+                    encoding="utf-8-sig",
+                ) as csv_file:
+                    writer = csv.DictWriter(
+                        csv_file,
+                        fieldnames=CSV_FIELDS,
+                        extrasaction="ignore",
+                    )
+                    writer.writeheader()
+                    writer.writerows(accepted)
+                output["csv_path"] = str(path)
+            except (OSError, ValueError) as error:
+                output["csv_error"] = str(error)
+
+        return AgentResult(
+            agent=self.name,
+            ok=True,
+            output=output,
+            message=(
+                f"Processed {len(opportunities)} opportunities: "
+                f"{len(accepted)} accepted, {len(rejected)} rejected."
+            ),
+            sources=[item["source_url"] for item in accepted],
+        )
