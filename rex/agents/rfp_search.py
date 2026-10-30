@@ -140,5 +140,3 @@ def search_rfps(country: str, topic: str) -> dict:
             "opportunities": [],
             "message": f"Live RFP search failed: {error}",
         }
-
-

@@ -1,7 +1,5 @@
-"""BM25 retriever over the RAG documents in data/rag_docs (works for Arabic and English).
+"""BM25 retriever for Arabic and English RAG documents."""
 
-Pure Python on purpose (no extra installs). The interface (`search(query, k)`) stays the same if you
-later swap BM25 for embeddings (Chroma / FAISS) - only this file changes."""
 import math
 import pathlib
 import re
@@ -11,16 +9,25 @@ from dataclasses import dataclass, field
 from rex.assistant.text import is_arabic, tokens as _tokens
 
 
-def tokens(text):
-    """Base tokens + simple English plural stripping (courses -> course)."""
-    out = []
-    for w in _tokens(text):
-        out.append(w)
-        if w.isascii() and len(w) > 3 and w.endswith("s") and not w.endswith("ss"):
-            out.append(w[:-1])
-    return out
-
 DOCS_DIR = pathlib.Path(__file__).resolve().parents[2] / "data" / "rag_docs"
+
+
+def tokens(text):
+    """Tokenize text and handle simple English plurals."""
+    result = []
+
+    for word in _tokens(text):
+        result.append(word)
+
+        if (
+            word.isascii()
+            and len(word) > 3
+            and word.endswith("s")
+            and not word.endswith("ss")
+        ):
+            result.append(word[:-1])
+
+    return result
 
 
 @dataclass
@@ -38,49 +45,159 @@ class Chunk:
 
 def parse_doc(path: pathlib.Path) -> Chunk:
     raw = path.read_text(encoding="utf-8")
-    m = re.match(r"---\n(.*?)\n---\n(.*)", raw, re.S)
-    meta, body = {}, raw
-    if m:
-        for line in m.group(1).splitlines():
+    match = re.match(r"---\n(.*?)\n---\n(.*)", raw, re.S)
+
+    meta = {}
+    body = raw
+
+    if match:
+        for line in match.group(1).splitlines():
             if ": " in line:
-                k, v = line.split(": ", 1)
-                meta[k.strip()] = v.strip()
-        body = m.group(2).strip()
-    return Chunk(meta.get("doc_id", path.stem), meta.get("title", path.stem), body, meta)
+                key, value = line.split(": ", 1)
+                meta[key.strip()] = value.strip()
+
+        body = match.group(2).strip()
+
+    return Chunk(
+        meta.get("doc_id", path.stem),
+        meta.get("title", path.stem),
+        body,
+        meta,
+    )
 
 
 class Retriever:
-    K1, B = 1.5, 0.75
+    K1 = 1.5
+    B = 0.75
+
+    OFFER_TERMS = {
+        "offer", "offers", "promotion", "promotions",
+        "discount", "discounts", "deal", "deals",
+        "special", "sale", "coupon", "coupons",
+        "عرض", "عروض", "خصم", "خصومات",
+    }
 
     def __init__(self, docs_dir: pathlib.Path = DOCS_DIR):
-        self.chunks = [parse_doc(p) for p in sorted(pathlib.Path(docs_dir).glob("*.md"))]
-        self._tf = []
-        for c in self.chunks:
-            bag = Counter(tokens(c.text))
-            for t in tokens(c.title + " " + c.meta.get("keywords", "")):
-                bag[t] += 3  # title and keywords count more
-            self._tf.append(bag)
-        n = len(self.chunks)
-        self._avg = (sum(sum(b.values()) for b in self._tf) / n) if n else 0
-        df = Counter(t for b in self._tf for t in b)
-        self._idf = {t: math.log(1 + (n - d + 0.5) / (d + 0.5)) for t, d in df.items()}
+        self.chunks = [
+            parse_doc(path)
+            for path in sorted(pathlib.Path(docs_dir).glob("*.md"))
+        ]
 
-    def search(self, query: str, k: int = 4, doc_type: str | None = None) -> list[Chunk]:
-        q = tokens(query)
+        self._tf = []
+
+        for chunk in self.chunks:
+            bag = Counter(tokens(chunk.text))
+
+            for token in tokens(
+                chunk.title + " " + chunk.meta.get("keywords", "")
+            ):
+                bag[token] += 3
+
+            self._tf.append(bag)
+
+        count = len(self.chunks)
+
+        self._avg = (
+            sum(sum(bag.values()) for bag in self._tf) / count
+            if count
+            else 1
+        )
+
+        if self._avg == 0:
+            self._avg = 1
+
+        document_frequency = Counter(
+            token
+            for bag in self._tf
+            for token in bag
+        )
+
+        self._idf = {
+            token: math.log(
+                1 + (count - frequency + 0.5) / (frequency + 0.5)
+            )
+            for token, frequency in document_frequency.items()
+        }
+
+    def search(
+        self,
+        query: str,
+        k: int = 4,
+        doc_type: str | None = None,
+    ) -> list[Chunk]:
+        query_tokens = tokens(query)
+        query_lower = query.lower()
+
+        offer_query = any(
+            term in query_tokens or term in query_lower
+            for term in self.OFFER_TERMS
+        )
+
         scored = []
+
         for chunk, bag in zip(self.chunks, self._tf):
             if doc_type and chunk.meta.get("type") != doc_type:
                 continue
+
             length = sum(bag.values()) or 1
-            s = 0.0
-            for t in q:
-                f = bag.get(t, 0)
-                if f:
-                    s += self._idf.get(t, 0) * f * (self.K1 + 1) / (f + self.K1 * (1 - self.B + self.B * length / self._avg))
-            if s > 0:
-                scored.append(Chunk(chunk.doc_id, chunk.title, chunk.text, chunk.meta, round(s, 3)))
-        scored.sort(key=lambda c: -c.score)
-        if not scored:  # generic question ("what do you offer?"): fall back to the catalog overview
-            lang = "ar" if is_arabic(query) else "en"
-            return [c for c in self.chunks if c.doc_id == f"catalog_{lang}"][:1]
-        return scored[:k]
+            score = 0.0
+
+            for token in query_tokens:
+                frequency = bag.get(token, 0)
+
+                if frequency:
+                    denominator = frequency + self.K1 * (
+                        1 - self.B + self.B * length / self._avg
+                    )
+
+                    score += (
+                        self._idf.get(token, 0)
+                        * frequency
+                        * (self.K1 + 1)
+                        / denominator
+                    )
+
+            if score > 0:
+                text_lower = chunk.text.lower()
+                doc_id = chunk.doc_id.lower()
+
+                if offer_query:
+                    if "pricing" in doc_id or "promotion" in doc_id:
+                        score *= 3.0
+
+                    if "current offer" in text_lower or "العرض الحالي" in text_lower:
+                        score *= 1.5
+
+                    if any(
+                        phrase in text_lower
+                        for phrase in (
+                            "no offer",
+                            "offer: none",
+                            "لا يوجد",
+                        )
+                    ):
+                        score *= 0.7
+
+                scored.append(
+                    Chunk(
+                        chunk.doc_id,
+                        chunk.title,
+                        chunk.text,
+                        chunk.meta,
+                        round(score, 3),
+                    )
+                )
+
+        scored.sort(key=lambda chunk: -chunk.score)
+
+        if not scored:
+            language = "ar" if is_arabic(query) else "en"
+            catalog_id = f"catalog_{language}"
+
+            return [
+                chunk
+                for chunk in self.chunks
+                if chunk.doc_id == catalog_id
+            ][:1]
+
+        return scored[:max(0, k)]
