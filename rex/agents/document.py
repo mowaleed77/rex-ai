@@ -46,25 +46,33 @@ class DocumentAgent(Agent):
                 ),
             )
 
-        # --- SAFE DIRECT RAG CORPUS READING ---
-        course_name = meta.get("Course", title)
-        rag_context = ""
-        try:
-            root_dir = Path(__file__).resolve().parents[2]
-            docs_dir = root_dir / "data" / "rag_docs"
-            if docs_dir.exists():
-                snippets = []
-                for md_file in docs_dir.glob("*.md"):
-                    text = md_file.read_text(encoding="utf-8", errors="ignore")
-                    if course_name.lower() in text.lower():
-                        snippets.append(text[:300])
-                rag_context = " ".join(snippets)
-        except Exception:
-            pass
-        # --------------------------------------
+        if not isinstance(meta, dict):
+            meta = {}
 
-        if not isinstance(content, dict) or not content:
+        used_rag = False
+        simple_lines = None
+
+        if isinstance(content, list) and content:
+            # Simple mode: a plain list of strings is rendered as paragraphs.
+            if not all(isinstance(item, str) for item in content):
+                return AgentResult(
+                    self.name, False, message="Every content item must be a string."
+                )
+            simple_lines = content
+        elif isinstance(content, dict) and content:
+            pass  # typed layout, rendered by _build_<document_type>
+        elif content in (None, [], {}):
+            # No content given: build a clearly-marked draft from the knowledge base.
+            course_name = str(meta.get("Course", title))
+            rag_context = self._rag_context(course_name)
+            used_rag = bool(rag_context)
             content = self._auto_generate_content(doc_type, title, meta, rag_context)
+        else:
+            return AgentResult(
+                self.name,
+                False,
+                message="content must be a JSON object, a list of strings, or omitted.",
+            )
 
         try:
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -74,8 +82,11 @@ class DocumentAgent(Agent):
             styles = self._styles()
             story = []
             story += self._header(title, meta, styles)
-            story += getattr(self, f"_build_{doc_type}")(content, styles)
-            story += self._footer(styles)
+            if simple_lines is not None:
+                story += self._build_simple(simple_lines, styles)
+            else:
+                story += getattr(self, f"_build_{doc_type}")(content, styles)
+            story += self._footer(styles, used_rag)
 
             SimpleDocTemplate(
                 str(output_path),
@@ -103,55 +114,58 @@ class DocumentAgent(Agent):
                 self.name, False, message=f"Could not generate PDF: {error}"
             )
 
+    def _rag_context(self, course_name: str) -> str:
+        """First 300 chars of each knowledge-base doc that mentions the course title."""
+        needle = course_name.strip().casefold()
+        docs_dir = Path(__file__).resolve().parents[2] / "data" / "rag_docs"
+        if not needle or not docs_dir.exists():
+            return ""
+        try:
+            snippets = []
+            for md_file in sorted(docs_dir.glob("*.md")):
+                text = md_file.read_text(encoding="utf-8", errors="ignore")
+                if needle in text.casefold():
+                    snippets.append(text[:300])
+            return " ".join(snippets)
+        except OSError:
+            return ""
+
     def _auto_generate_content(self, doc_type: str, title: str, meta: dict, rag_context: str) -> dict:
+        """Draft content used only when the caller supplied none.
+
+        Facts the agent cannot know (fee, duration, prerequisites) are left as
+        'To be confirmed' instead of being invented.
+        """
         course_name = meta.get("Course", title)
-        audience = meta.get("Audience", "Professionals and Students")
-        level = meta.get("Level", audience)
-        base_overview = rag_context if rag_context else f"Comprehensive training program for {course_name}."
+        audience = meta.get("Audience", "To be confirmed")
+        level = meta.get("Level", "To be confirmed")
+        base_overview = rag_context if rag_context else f"Draft training program for {course_name}."
 
         if doc_type == "curriculum_report":
             return {
-                "overview": f"{base_overview[:300]} Designed to take learners from core fundamentals to professional competency.",
-                "objectives": [
-                    f"Master the core principles of {course_name}",
-                    "Apply theoretical concepts through supervised labs",
-                    "Build and present a complete capstone project"
-                ],
-                "modules": [
-                    {"title": "Module 1: Fundamentals", "topics": ["Introduction", "Environment Setup", "Core Syntax"], "hours": 6},
-                    {"title": "Module 2: Practical Application", "topics": ["Data Handling", "Workflows", "Error Mitigation"], "hours": 10},
-                    {"title": "Module 3: Advanced Topics", "topics": ["Optimization", "Best Practices", "Deployment"], "hours": 8}
-                ],
-                "assessments": ["Weekly quizzes", "Practical lab assessments", "Final capstone review"],
-                "capstone": f"Develop a production-ready application showcasing {course_name} expertise."
+                "overview": f"{base_overview[:300]} (Draft - to be completed by the course owner.)",
+                "objectives": [f"To be defined for {course_name}"],
+                "modules": [],
+                "assessments": [],
+                "capstone": "",
             }
         elif doc_type == "course_description":
             return {
-                "pitch": f"Accelerate your career with our certified {course_name} program. Tailored for {audience}.",
+                "pitch": f"{course_name} - draft course description.",
                 "audience": audience,
                 "level": level,
-                "duration": "24 Hours (4 Weeks)",
-                "format": "Hybrid / Online Interactive",
-                "fee": "EGP 5,000",
-                "prerequisites": "Basic foundational literacy",
-                "outcomes": [
-                    f"Professional fluency in {course_name}",
-                    "Complete real-world projects for your portfolio",
-                    "Direct feedback from certified academy instructors"
-                ],
-                "careers": ["Specialist", "Consultant", "Technical Lead"]
+                "duration": "To be confirmed",
+                "format": "To be confirmed",
+                "fee": "To be confirmed",
+                "prerequisites": "To be confirmed",
+                "outcomes": [],
+                "careers": [],
             }
         else:  # gap_analysis
             return {
-                "summary": f"Accreditation and competency alignment analysis for {course_name} based on academy standards.",
-                "gaps": [
-                    {"requirement": "Industry Standard Tooling", "status": "Covered", "severity": "Low", "recommendation": "Maintain current curriculum."},
-                    {"requirement": "Advanced Compliance Protocols", "status": "Missing", "severity": "Medium", "recommendation": "Incorporate a dedicated module."}
-                ],
-                "recommended_actions": [
-                    "Integrate recommended modules prior to final review.",
-                    "Re-run automated alignment check."
-                ]
+                "summary": f"Draft gap analysis for {course_name}. No gaps have been entered yet.",
+                "gaps": [],
+                "recommended_actions": [],
             }
 
     def _styles(self):
@@ -171,6 +185,13 @@ class DocumentAgent(Agent):
             )
         )
         s.add(ParagraphStyle("Body", parent=s["BodyText"], leading=15))
+        s.add(ParagraphStyle("Cell", parent=s["Normal"], fontSize=9, leading=11))
+        s.add(
+            ParagraphStyle(
+                "CellHead", parent=s["Cell"], textColor=colors.white,
+                fontName="Helvetica-Bold",
+            )
+        )
         return s
 
     def _header(self, title, meta, styles):
@@ -188,19 +209,31 @@ class DocumentAgent(Agent):
         ]
         return out
 
-    def _footer(self, styles):
+    def _footer(self, styles, used_rag=False):
+        note = (
+            "Draft built from the REX AI knowledge base - " if used_rag
+            else "Generated by REX AI - "
+        )
         return [
             Spacer(1, 18),
             HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey),
             Paragraph(
-                "Generated autonomously via REX AI RAG Knowledge Base — for internal review only. "
+                note + "for internal review only. "
                 "This document does not certify official accreditation.",
                 styles["Meta"],
             ),
         ]
 
+    @staticmethod
+    def _as_list(value):
+        if value is None:
+            return []
+        if isinstance(value, (list, tuple)):
+            return list(value)
+        return [value]  # a lone string must not be split into characters
+
     def _bullets(self, items, styles):
-        cleaned = [str(i) for i in items if str(i).strip()]
+        cleaned = [str(i) for i in self._as_list(items) if str(i).strip()]
         if not cleaned:
             return Spacer(1, 1)
         return ListFlowable(
@@ -211,16 +244,22 @@ class DocumentAgent(Agent):
             bulletFontSize=10,
         )
 
-    def _data_table(self, rows, col_widths, header_bg="#1F3A5F"):
-        t = Table(rows, colWidths=col_widths, repeatRows=1)
+    def _cell(self, value, styles, head=False):
+        """Table cell as a Paragraph, so text wraps and special characters render correctly."""
+        return Paragraph(escape(str(value)), styles["CellHead" if head else "Cell"])
+
+    def _data_table(self, rows, col_widths, styles, header_bg="#1F3A5F"):
+        data = [
+            [self._cell(c, styles, head=(r == 0)) for c in row]
+            for r, row in enumerate(rows)
+        ]
+        t = Table(data, colWidths=col_widths, repeatRows=1)
         t.setStyle(
             TableStyle(
                 [
                     ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(header_bg)),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
                     ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 9),
                     ("LEFTPADDING", (0, 0), (-1, -1), 6),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 6),
                     ("TOPPADDING", (0, 0), (-1, -1), 4),
@@ -230,14 +269,17 @@ class DocumentAgent(Agent):
         )
         return t
 
-    def _kv_table(self, pairs):
-        t = Table(pairs, colWidths=[4 * cm, 12 * cm])
+    def _kv_table(self, pairs, styles):
+        data = [
+            [self._cell(k, styles), self._cell(v, styles)]
+            for k, v in pairs
+        ]
+        t = Table(data, colWidths=[4 * cm, 12 * cm])
         t.setStyle(
             TableStyle(
                 [
                     ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#EEF2F7")),
                     ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
-                    ("FONTSIZE", (0, 0), (-1, -1), 10),
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
                     ("LEFTPADDING", (0, 0), (-1, -1), 6),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 6),
@@ -247,6 +289,12 @@ class DocumentAgent(Agent):
             )
         )
         return t
+
+    def _build_simple(self, lines, styles):
+        out = []
+        for line in lines:
+            out += [Paragraph(escape(line), styles["Body"]), Spacer(1, 6)]
+        return out
 
     def _build_curriculum_report(self, c, styles):
         out = []
@@ -254,12 +302,14 @@ class DocumentAgent(Agent):
             out += [Paragraph("Overview", styles["SectionH2"]), Paragraph(escape(str(c["overview"])), styles["Body"])]
         if c.get("objectives"):
             out += [Paragraph("Learning Objectives", styles["SectionH2"]), self._bullets(c["objectives"], styles)]
-        modules = c.get("modules") or []
+        modules = [m for m in self._as_list(c.get("modules")) if isinstance(m, dict)]
         if modules:
             rows = [["#", "Module", "Topics", "Hours"]]
             for i, m in enumerate(modules, 1):
-                rows.append([str(i), escape(str(m.get("title", ""))), escape(", ".join(m.get("topics", []))), str(m.get("hours", ""))])
-            out += [Paragraph("Course Modules", styles["SectionH2"]), self._data_table(rows, [1 * cm, 5 * cm, 8 * cm, 2 * cm])]
+                topics = ", ".join(str(t) for t in self._as_list(m.get("topics")))
+                hours = m.get("hours", m.get("duration_hours", ""))
+                rows.append([str(i), m.get("title", ""), topics, hours])
+            out += [Paragraph("Course Modules", styles["SectionH2"]), self._data_table(rows, [1 * cm, 5 * cm, 8 * cm, 2 * cm], styles)]
         if c.get("assessments"):
             out += [Paragraph("Assessments", styles["SectionH2"]), self._bullets(c["assessments"], styles)]
         if c.get("capstone"):
@@ -270,9 +320,9 @@ class DocumentAgent(Agent):
         out = []
         if c.get("pitch"):
             out += [Paragraph(escape(str(c["pitch"])), styles["Body"]), Spacer(1, 6)]
-        facts = [(escape(str(k)), escape(str(c[k]))) for k in ("audience", "level", "duration", "format", "fee", "prerequisites") if c.get(k)]
+        facts = [(k.capitalize(), c[k]) for k in ("audience", "level", "duration", "format", "fee", "prerequisites") if c.get(k)]
         if facts:
-            out += [Paragraph("Key Facts", styles["SectionH2"]), self._kv_table(facts)]
+            out += [Paragraph("Key Facts", styles["SectionH2"]), self._kv_table(facts, styles)]
         if c.get("outcomes"):
             out += [Paragraph("What You Will Learn", styles["SectionH2"]), self._bullets(c["outcomes"], styles)]
         if c.get("careers"):
@@ -283,12 +333,12 @@ class DocumentAgent(Agent):
         out = []
         if c.get("summary"):
             out += [Paragraph("Summary", styles["SectionH2"]), Paragraph(escape(str(c["summary"])), styles["Body"])]
-        gaps = c.get("gaps") or []
+        gaps = [g for g in self._as_list(c.get("gaps")) if isinstance(g, dict)]
         if gaps:
             rows = [["Requirement", "Status", "Severity", "Recommendation"]]
             for g in gaps:
-                rows.append([escape(str(g.get("requirement", ""))), escape(str(g.get("status", ""))), escape(str(g.get("severity", ""))), escape(str(g.get("recommendation", "")))])
-            out += [Paragraph("Gap Details", styles["SectionH2"]), self._data_table(rows, [4.5 * cm, 2.5 * cm, 2 * cm, 7 * cm])]
+                rows.append([g.get("requirement", ""), g.get("status", ""), g.get("severity", ""), g.get("recommendation", "")])
+            out += [Paragraph("Gap Details", styles["SectionH2"]), self._data_table(rows, [4.5 * cm, 2.5 * cm, 2 * cm, 7 * cm], styles)]
         if c.get("recommended_actions"):
             out += [Paragraph("Recommended Actions", styles["SectionH2"]), self._bullets(c["recommended_actions"], styles)]
         return out
