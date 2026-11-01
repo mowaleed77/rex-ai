@@ -1,14 +1,22 @@
-"""LangGraph-based router for the REX AI agents."""
+"""Router: sends a task to the right agent.
 
-from typing import TypedDict, Any
+Uses a LangGraph workflow when `langgraph` is installed, and falls back to a plain
+call otherwise, so the project (and the tests) never depend on it being present.
+"""
 
-from langgraph.graph import StateGraph, END
+from typing import Any, TypedDict
 
 from .base import Agent, AgentResult
+from .rfp import RfpAgent
 from .curriculum import CurriculumAgent
 from .document import DocumentAgent
 from .marketing import MarketingAgent
-from .rfp import RfpAgent
+
+try:  # optional dependency
+    from langgraph.graph import StateGraph, END
+except ImportError:  # pragma: no cover - depends on the environment
+    StateGraph = None
+    END = None
 
 
 class WorkflowState(TypedDict, total=False):
@@ -19,52 +27,52 @@ class WorkflowState(TypedDict, total=False):
 
 class Orchestrator:
     def __init__(self):
+        agents = (
+            RfpAgent(),
+            CurriculumAgent(),
+            DocumentAgent(),
+            MarketingAgent(),
+        )
         self.agents: dict[str, Agent] = {
-            agent.name: agent
-            for agent in (
-                RfpAgent(),
-                CurriculumAgent(),
-                DocumentAgent(),
-                MarketingAgent(),
-            )
+            agent.name: agent for agent in agents
         }
 
-        graph = StateGraph(WorkflowState)
-        graph.add_node("dispatch", self._dispatch_node)
-        graph.set_entry_point("dispatch")
-        graph.add_edge("dispatch", END)
-        self.workflow = graph.compile()
+        self.workflow = None
+        if StateGraph is not None:
+            graph = StateGraph(WorkflowState)
+            graph.add_node("dispatch", self._dispatch_node)
+            graph.set_entry_point("dispatch")
+            graph.add_edge("dispatch", END)
+            self.workflow = graph.compile()
 
     def register(self, agent: Agent):
         self.agents[agent.name] = agent
 
-    def _dispatch_node(self, state: WorkflowState) -> WorkflowState:
-        agent_name = state["agent_name"]
-        task = state["task"]
-
+    def _run_agent(self, agent_name: str, task: dict) -> AgentResult:
         agent = self.agents.get(agent_name)
 
-        if agent is None:
-            result = AgentResult(
+        if not agent:
+            return AgentResult(
                 agent_name,
                 False,
                 message=f"Unknown agent '{agent_name}'",
             )
-        else:
-            try:
-                result = agent.run(task)
-            except Exception as error:
-                result = AgentResult(
-                    agent_name,
-                    False,
-                    message=f"Agent error: {error}",
-                )
 
-        return {"result": result}
+        try:
+            return agent.run(task)
+        except Exception as error:
+            return AgentResult(
+                agent_name,
+                False,
+                message=f"Agent error: {error}",
+            )
+
+    def _dispatch_node(self, state: WorkflowState) -> WorkflowState:
+        return {"result": self._run_agent(state["agent_name"], state["task"])}
 
     def dispatch(self, agent_name: str, task: dict) -> AgentResult:
-        state = self.workflow.invoke({
-            "agent_name": agent_name,
-            "task": task,
-        })
+        if self.workflow is None:
+            return self._run_agent(agent_name, task)
+
+        state = self.workflow.invoke({"agent_name": agent_name, "task": task})
         return state["result"]

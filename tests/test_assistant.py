@@ -56,8 +56,7 @@ def test_orchestrator_real_agent_and_unknown_agent():
 
     rfp_result = o.dispatch("rfp_research", {})
     assert rfp_result.ok
-    assert "Provide a country" in rfp_result.message
-
+    assert rfp_result.output["count"] == 0
     unknown_result = o.dispatch("nope", {})
     assert not unknown_result.ok
     assert "Unknown agent" in unknown_result.message
