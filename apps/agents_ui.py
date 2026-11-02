@@ -1,6 +1,6 @@
-"""UI for the four task agents.  Run:  streamlit run apps/agents_ui.py
+"""Unified REX AI app: the chatbot plus the four task agents.  Run:  streamlit run apps/agents_ui.py
 
-One tab per agent. Every tab calls the Orchestrator, exactly like the code in
+One tab per agent (the first tab is the chatbot). Every agent tab calls the Orchestrator, exactly like the code in
 apps/demo_sprint2.py, so the UI shows the same behaviour as the tests.
 """
 import json
@@ -17,8 +17,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # lets Python find
 import streamlit as st
 
 from rex.agents.orchestrator import Orchestrator
+from rex.assistant.engine import RexAssistant, Session
+from rex.assistant.rag import RagAssistant
 
-st.set_page_config(page_title="REX AI | Agents", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="REX AI | Smart Academy", page_icon="🎓", layout="wide")
+
+# Arabic replies align right-to-left, English left-to-right (per paragraph)
+st.markdown(
+    """
+    <style>
+    .stChatMessage p, .stChatMessage li { unicode-bidi: plaintext; text-align: start; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 @st.cache_resource
@@ -105,15 +117,80 @@ DOC_DEFAULTS = {
     },
 }
 
-st.title("🤖 REX AI – Task Agents")
+
+st.title("🎓 REX AI – Smart Academy")
 st.caption(
-    "Each tab sends a task to one agent through the Orchestrator and shows the result. "
-    "The chatbot has its own app: `streamlit run apps/streamlit_app.py`."
+    "One app for the whole system: the course chatbot, and one tab per task agent. "
+    "The agent tabs send a task to one agent through the Orchestrator and show the result."
 )
 
-tab_rfp, tab_cur, tab_doc, tab_mkt = st.tabs(
-    ["📑 RFP Research", "📚 Curriculum", "📄 Documents (PDF)", "📣 Marketing"]
+with st.sidebar:
+    st.markdown("### ⚙️ REX status")
+    if hasattr(st.session_state.get("chat_bot"), "llm_enabled") and st.session_state["chat_bot"].llm_enabled:
+        st.success(f"LLM + RAG on · {st.session_state['chat_bot'].llm.model}")
+    else:
+        st.warning("No LLM key / rule-based mode")
+    if hasattr(st.session_state.get("chat_bot"), "retriever"):
+        st.caption(f"{len(st.session_state['chat_bot'].retriever.chunks)} knowledge documents loaded")
+
+
+tab_chat, tab_rfp, tab_cur, tab_doc, tab_mkt = st.tabs(
+    ["💬 Assistant (chatbot)", "📑 RFP Research", "📚 Curriculum", "📄 Documents (PDF)", "📣 Marketing"]
 )
+
+
+def show_text(text: str):
+    # keep the bot's line breaks (markdown ignores single newlines)
+    st.markdown(text.replace("\n", "  \n"))
+
+
+# ------------------------------------------------------------------------ Chatbot
+with tab_chat:
+    st.subheader("REX Assistant – course recommendation chatbot")
+    st.caption("Ask in English or Arabic about courses, prices, duration, prerequisites and careers.")
+
+    if "chat_bot" not in st.session_state:
+        st.session_state["chat_bot"] = RagAssistant()
+        st.session_state["chat_session"] = Session()
+        st.session_state["chat_messages"] = []
+
+    chat_messages = st.session_state["chat_messages"]
+
+    if not chat_messages:
+        st.markdown(
+            "**Welcome to REX AI!** Ask me about courses, prices, duration, prerequisites, "
+            "and career opportunities.\n\n"
+            "**مرحباً بك في REX AI!** اسألني عن الكورسات والأسعار والمدة والمتطلبات وفرص العمل."
+        )
+
+    for chat_msg in chat_messages:
+        with st.chat_message(chat_msg["role"]):
+            show_text(chat_msg["content"])
+
+    with st.form("chat_form", clear_on_submit=True):
+        chat_text = st.text_input(
+            "Message", placeholder="Ask in English or Arabic...", label_visibility="collapsed"
+        )
+        send_col, new_col = st.columns([1, 5])
+        chat_sent = send_col.form_submit_button("Send", type="primary")
+        chat_reset = new_col.form_submit_button("New conversation")
+
+    if chat_reset:
+        st.session_state["chat_bot"] = RexAssistant()
+        st.session_state["chat_session"] = Session()
+        st.session_state["chat_messages"] = []
+        st.rerun()
+
+    if chat_sent and chat_text.strip():
+        chat_messages.append({"role": "user", "content": chat_text.strip()})
+        try:
+            chat_reply = st.session_state["chat_bot"].reply(
+                st.session_state["chat_session"], chat_text.strip()
+            )
+        except Exception as error:  # keep the UI alive on any agent error
+            chat_reply = f"Sorry, something went wrong: {error}"
+        chat_messages.append({"role": "assistant", "content": str(chat_reply)})
+        st.rerun()
 
 # --------------------------------------------------------------------------- RFP
 with tab_rfp:
