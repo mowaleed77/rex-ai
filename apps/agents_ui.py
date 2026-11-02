@@ -56,6 +56,14 @@ CATALOG = load_catalog()
 CUSTOM = "✏️ Custom course…"
 LEVELS = ["Beginner", "Intermediate", "Advanced"]
 
+# ==========================================
+# 1. INITIALIZE CHAT BOT BEFORE SIDEBAR
+# ==========================================
+if "chat_bot" not in st.session_state:
+    st.session_state["chat_bot"] = RagAssistant()
+    st.session_state["chat_session"] = Session()
+    st.session_state["chat_messages"] = []
+
 SAMPLE_RFPS = [
     {"title": "IT Training Program", "country": "Egypt", "organization": "MCIT",
      "deadline": "2026-12-01", "source_url": "https://example.com/eg1"},
@@ -124,15 +132,24 @@ st.caption(
     "The agent tabs send a task to one agent through the Orchestrator and show the result."
 )
 
+# ==========================================
+# 2. RENDER SIDEBAR AFTER CHAT_BOT IS CREATED
+# ==========================================
 with st.sidebar:
     st.markdown("### ⚙️ REX status")
-    if hasattr(st.session_state.get("chat_bot"), "llm_enabled") and st.session_state["chat_bot"].llm_enabled:
-        st.success(f"LLM + RAG on · {st.session_state['chat_bot'].llm.model}")
+    bot = st.session_state["chat_bot"]
+    if getattr(bot, "llm_enabled", False):
+        model_name = getattr(bot.llm, "model", "openai/gpt-oss-20b")
+        st.success(f"LLM + RAG on · {model_name}")
     else:
         st.warning("No LLM key / rule-based mode")
-    if hasattr(st.session_state.get("chat_bot"), "retriever"):
-        st.caption(f"{len(st.session_state['chat_bot'].retriever.chunks)} knowledge documents loaded")
+    if hasattr(bot, "retriever") and hasattr(bot.retriever, "chunks"):
+        st.caption(f"{len(bot.retriever.chunks)} knowledge documents loaded")
 
+
+tab_chat, tab_rfp, tab_cur, tab_doc, tab_mkt = st.tabs(
+    ["💬 Assistant (chatbot)", "📑 RFP Research", "📚 Curriculum", "📄 Documents (PDF)", "📣 Marketing"]
+)
 
 tab_chat, tab_rfp, tab_cur, tab_doc, tab_mkt = st.tabs(
     ["💬 Assistant (chatbot)", "📑 RFP Research", "📚 Curriculum", "📄 Documents (PDF)", "📣 Marketing"]
