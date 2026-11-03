@@ -1,10 +1,9 @@
-"""Minimal LLM client for any OpenAI-compatible chat API (OpenAI, Groq, OpenRouter, Gemini's
-OpenAI-compatible endpoint, a local Ollama server, ...). Uses only the standard library.
+"""Minimal LLM client for any OpenAI-compatible chat API.
 
 Configure with environment variables or a `.env` file in the project root:
-    LLM_API_KEY   (or OPENAI_API_KEY)   required - without it the bot falls back to rules
-    LLM_BASE_URL  default https://api.openai.com/v1
-    LLM_MODEL     default gpt-4o-mini
+    LLM_API_KEY   (or OPENAI_API_KEY)
+    LLM_BASE_URL  default https://api.groq.com/openai/v1
+    LLM_MODEL     default openai/gpt-oss-20b
 """
 import json
 import os
@@ -31,7 +30,7 @@ def load_dotenv(path: pathlib.Path = ROOT / ".env"):
 
 
 class LLMClient:
-    def __init__(self, api_key: str, base_url: str = "https://api.openai.com/v1", model: str = "gpt-4o-mini", timeout: int = 40):
+    def __init__(self, api_key: str, base_url: str = "https://api.groq.com/openai/v1", model: str = "openai/gpt-oss-20b", timeout: int = 40):
         self.api_key, self.base_url, self.model, self.timeout = api_key, base_url.rstrip("/"), model, timeout
 
     @classmethod
@@ -41,13 +40,25 @@ class LLMClient:
         key = os.environ.get("LLM_API_KEY") or os.environ.get("OPENAI_API_KEY")
         if not key:
             return None
-        return cls(key, os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1"), os.environ.get("LLM_MODEL", "gpt-4o-mini"))
+        return cls(
+            key, 
+            os.environ.get("LLM_BASE_URL", "https://api.groq.com/openai/v1"), 
+            os.environ.get("LLM_MODEL", "openai/gpt-oss-20b")
+        )
 
     def __call__(self, messages: list[dict], temperature: float = 0.2) -> str:
         body = json.dumps({"model": self.model, "messages": messages, "temperature": temperature}).encode("utf-8")
-        req = urllib.request.Request(f"{self.base_url}/chat/completions", data=body, method="POST",
-                                     headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.api_key}",
-                                              "Accept": "application/json", "User-Agent": "rex-ai/1.0 (+python)"})
+        req = urllib.request.Request(
+            f"{self.base_url}/chat/completions", 
+            data=body, 
+            method="POST",
+            headers={
+                "Content-Type": "application/json", 
+                "Authorization": f"Bearer {self.api_key}",
+                "Accept": "application/json", 
+                "User-Agent": "rex-ai/1.0 (+python)"
+            }
+        )
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
