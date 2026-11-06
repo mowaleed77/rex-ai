@@ -36,6 +36,19 @@ COUNTRY_ALIASES = {
     "السعودية": "Saudi Arabia",
     "المملكة العربية السعودية": "Saudi Arabia",
 }
+def _get_supported_country(value):
+    """Normalize an explicit supported country or a location ending in one."""
+    normalized = _norm(value).strip(" ,.;:")
+    if normalized in COUNTRY_ALIASES:
+        return COUNTRY_ALIASES[normalized]
+
+    # Accept "Cairo, Egypt", "Riyadh - Saudi Arabia", etc.
+    parts = re.split(r"[,،;|–—-]", normalized)
+    for part in reversed(parts):
+        candidate = part.strip(" ,.;:")
+        if candidate in COUNTRY_ALIASES:
+            return COUNTRY_ALIASES[candidate]
+    return None
 
 _RELEVANT_RE = re.compile(
     r"\b(training|trainers?|education(?:al)?|learning|courses?|curricul\w+|capacity building"
@@ -87,21 +100,41 @@ class RfpAgent(Agent):
         # ---- ONLINE DISCOVERY ----
         if task.get("discover"):
             discovery["ran"] = True
-            try:
-                found_all = []
-                # Search live for both supported countries
-                for country in ["Egypt", "Saudi Arabia"]:
-                    res = search_rfps(country=country, topic="education training digital transformation")
-                    if isinstance(res, dict):
-                        if res.get("ok"):
-                            found_all.extend(res.get("opportunities", []))
-                        elif res.get("message"):
-                            discovery["errors"].append(res["message"])
-                
-                opportunities = found_all + opportunities
-                discovery["candidates"] = len(found_all)
-            except Exception as exc:
-                discovery["errors"].append(str(exc))
+
+            if getattr(self.searcher, "available", None) is False:
+                return AgentResult(
+                    agent=self.name,
+                    ok=False,
+                    message="Tavily search backend is unavailable. Please configure TAVILY_API_KEY.",
+                )
+
+            found_all = []
+            failed_countries = []
+            topic = task.get("topic") or "education training digital transformation"
+            max_results = int(task.get("max_results", 5))
+            for country in ("Egypt", "Saudi Arabia"):
+                result = search_rfps(
+                    country=country,
+                    topic=topic,
+                    searcher=self.searcher,
+                    extractor=self.extractor,
+                    max_results=max_results,
+                )
+                if result.get("opportunities"):
+                    found_all.extend(result["opportunities"])
+                discovery["errors"].extend(result.get("errors", []))
+                if not result.get("ok"):
+                    failed_countries.append(country)
+
+            opportunities = found_all + opportunities
+            discovery["candidates"] = len(found_all)
+            discovery["failed_countries"] = failed_countries
+            discovery["partial"] = bool(discovery["errors"] and found_all)
+            discovery["status"] = (
+                "failed" if failed_countries and not found_all
+                else "partial" if discovery["errors"]
+                else "completed"
+            )
         accepted, rejected, seen = [], [], set()
 
         for item in opportunities:
@@ -115,11 +148,17 @@ class RfpAgent(Agent):
 
             def reject(reason, _title=title, _url=url):
                 rejected.append({"title": _title, "source_url": _url, "reason": reason})
-
+                #
+                # Note: we don't raise here, we continue to the next item
             # 1. strict geographic rule
-            country = COUNTRY_ALIASES.get(_norm(item.get("country")))
+            raw_country = item.get("country", "")
+            country = _get_supported_country(raw_country)
+
             if not country:
-                reject("outside Egypt/Saudi Arabia")
+                if not _norm(raw_country):
+                    reject("country not stated or not verifiable")
+                else:
+                    reject("outside Egypt/Saudi Arabia")
                 continue
 
             # 2. traceability: need a title and a source link
@@ -213,14 +252,22 @@ class RfpAgent(Agent):
             except (OSError, ValueError) as error:
                 output["csv_error"] = str(error)
 
+        discovery_failed = (
+            discovery["ran"]
+            and discovery.get("status") == "failed"
+            and not accepted
+            and not task.get("opportunities")
+        )
         return AgentResult(
-            agent=self.name, ok=True,
+            agent=self.name, ok=not discovery_failed,
             output=output,
             message=(
                 f"Processed {len(accepted)} eligible opportunities "
                 f"({len(new_items)} new, {len(rejected)} rejected"
                 + (f", {discovery['candidates']} found online" if discovery["ran"] else "")
                 + "). Verify each opportunity against its original source."
+                + (f" Discovery status: {discovery.get('status')}."
+                   if discovery.get("status") in ("partial", "failed") else "")
             ),
             sources=[o["source_url"] for o in accepted],
         )
