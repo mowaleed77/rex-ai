@@ -5,3 +5,9 @@ streamlit>=1.33
 pytest>=8.0
 httpx>=0.27
 reportlab>=4.0
+python-dotenv>=1.0
+requests>=2.31
+# Arabic PDF text shaping (a built-in fallback is used if these are missing)
+arabic-reshaper>=3.0
+python-bidi>=0.4.2
+# Optional extras: langgraph (workflow graph), langchain-openai (LangChain LLM client)
