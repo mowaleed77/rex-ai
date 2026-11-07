@@ -132,9 +132,9 @@ class Orchestrator:
     def register(self, agent: Agent):
         self.agents[agent.name] = agent
 
-    def _log(self, agent: str, action: str, ok: bool, message: str) -> None:
+    def _log(self, agent: str, action: str, ok: bool, message: str, ms: int | None = None) -> None:
         event = {"at": time.strftime("%H:%M:%S"), "agent": agent, "action": action, "ok": ok,
-                 "message": message[:300]}
+                 "message": message[:300], "ms": ms}
         self.trace.append(event)
         del self.trace[:-200]
         if self.on_event:
@@ -147,12 +147,13 @@ class Orchestrator:
         agent = self.agents.get(agent_name)
         if not agent:
             return AgentResult(agent_name, False, message=f"Unknown agent '{agent_name}'")
+        started = time.perf_counter()
         try:
             result = agent.run(task)
         except Exception as error:
             result = AgentResult(agent_name, False, message=f"Agent error: {error}")
         self._log(agent_name, str(task.get("action") or task.get("document_type") or "run"),
-                  result.ok, result.message)
+                  result.ok, result.message, ms=int((time.perf_counter() - started) * 1000))
         return result
 
     def _dispatch_node(self, state: WorkflowState) -> WorkflowState:

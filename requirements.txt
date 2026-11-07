@@ -10,4 +10,6 @@ requests>=2.31
 # Arabic PDF text shaping (a built-in fallback is used if these are missing)
 arabic-reshaper>=3.0
 python-bidi>=0.4.2
+# CV upload (PDF reading); .docx and .txt need nothing extra
+pypdf>=4.0
 # Optional extras: langgraph (workflow graph), langchain-openai (LangChain LLM client)
