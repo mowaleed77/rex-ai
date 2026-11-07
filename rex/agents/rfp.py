@@ -1,28 +1,60 @@
 """RFP & Tender Research Agent (Egypt + Saudi Arabia only).
 
-Pipeline: validate -> country filter -> relevance filter -> expiry filter
--> duplicate detection -> summary -> review routing -> optional CSV export.
+Pipeline: [online discovery] -> validate -> country filter -> relevance filter
+-> expiry filter -> duplicate detection -> summary -> review routing
+-> new-opportunity detection + alert -> optional CSV export.
 Every rejected item is reported with a reason, so filtering is demonstrable.
+
+Task keys:
+  opportunities : list[dict]   pre-collected items (optional)
+  discover      : bool         search the web for new items (needs a search backend)
+  max_results   : int          results per query (default 8)
+  today         : "YYYY-MM-DD" override for tests
+  csv_path      : str          export accepted items
+  store_path    : str          JSON file remembering seen URLs -> flags new items
 """
+
 import csv
+import json
 import re
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
+from rex.agents.rfp_sources import TavilySearch, parse_date
 from .base import Agent, AgentResult
 from .rfp_search import search_rfps
 
-COUNTRY_ALIASES = {
-    "egypt": "Egypt", "eg": "Egypt", "مصر": "Egypt",
-    "saudi arabia": "Saudi Arabia", "saudi": "Saudi Arabia", "ksa": "Saudi Arabia",
-    "kingdom of saudi arabia": "Saudi Arabia",
-    "المملكة العربية السعودية": "Saudi Arabia", "السعودية": "Saudi Arabia",
-}
 
-RELEVANT_KEYWORDS = (
-    "training", "education", "learning", "course", "curriculum", "capacity building",
-    "professional development", "digital transformation", "it ", "software", "technical",
-    "skills", "academy", "workshop", "تدريب", "تعليم", "تأهيل",
+COUNTRY_ALIASES = {
+    "egypt": "Egypt",
+    "eg": "Egypt",
+    "saudi arabia": "Saudi Arabia",
+    "saudi": "Saudi Arabia",
+    "ksa": "Saudi Arabia",
+    "kingdom of saudi arabia": "Saudi Arabia",
+    "مصر": "Egypt",
+    "السعودية": "Saudi Arabia",
+    "المملكة العربية السعودية": "Saudi Arabia",
+}
+def _get_supported_country(value):
+    """Normalize an explicit supported country or a location ending in one."""
+    normalized = _norm(value).strip(" ,.;:")
+    if normalized in COUNTRY_ALIASES:
+        return COUNTRY_ALIASES[normalized]
+
+    # Accept "Cairo, Egypt", "Riyadh - Saudi Arabia", etc.
+    parts = re.split(r"[,،;|–—-]", normalized)
+    for part in reversed(parts):
+        candidate = part.strip(" ,.;:")
+        if candidate in COUNTRY_ALIASES:
+            return COUNTRY_ALIASES[candidate]
+    return None
+
+_RELEVANT_RE = re.compile(
+    r"\b(training|trainers?|education(?:al)?|learning|courses?|curricul\w+|capacity building"
+    r"|professional development|digital transformation|information technology"
+    r"|it (?:training|skills|services|courses)|software|technical|skills|academy|workshops?)\b"
+    r"|تدريب|تعليم|تأهيل|تطوير المهارات"
 )
 
 ROUTES = {
@@ -32,92 +64,101 @@ ROUTES = {
 
 CSV_FIELDS = [
     "title", "organization", "country", "deadline", "category", "source_url",
-    "publication_date", "eligibility", "review_route", "status", "summary",
+    "publication_date", "eligibility", "review_route", "status", "is_new", "summary",
 ]
-
-
-def _parse_date(value):
-    """Return a date, or None if missing/unparseable."""
-    if not value:
-        return None
-    try:
-        return date.fromisoformat(str(value).strip()[:10])
-    except ValueError:
-        return None
 
 
 def _norm(text) -> str:
     return re.sub(r"\s+", " ", str(text or "").casefold()).strip()
 
 
+def _norm_url(url) -> str:
+    return _norm(url).split("#")[0].rstrip("/")
+
+
 class RfpAgent(Agent):
     name = "rfp_research"
 
-    ALLOWED_COUNTRIES = {"egypt", "saudi arabia"}
+    def __init__(self, *args, searcher=None, extractor=None, notifier=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.searcher = searcher if searcher is not None else TavilySearch()
+        self.extractor = extractor
+        self.notifier = notifier
 
     def run(self, task: dict) -> AgentResult:
-        country = str(task.get("country", "")).strip()
-        topic = str(task.get("topic", "education and technology")).strip()
-
-        if country and country.lower() not in self.ALLOWED_COUNTRIES:
+        opportunities = task.get("opportunities", [])
+        if not isinstance(opportunities, list):
             return AgentResult(
                 agent=self.name,
                 ok=False,
-                message="Only Egypt and Saudi Arabia are supported."
-            )
-        opportunities = task.get("opportunities")
-
-        if opportunities is None:
-            if not country:
-                return AgentResult(
-                    agent=self.name,
-                    ok=True,
-                    output={
-                        "opportunities": [],
-                        "count": 0,
-                        "supported_countries": ["Egypt", "Saudi Arabia"],
-                    },
-                    message="Provide a country to search for RFP opportunities.",
-                )
-
-            search_result = search_rfps(
-                "Egypt" if country.lower() == "egypt" else "Saudi Arabia",
-                topic
-            )
-
-            if not search_result["ok"]:
-                return AgentResult(
-                    agent=self.name,
-                    ok=False,
-                    output={"opportunities": [], "count": 0},
-                    message=search_result["message"]
-                )
-
-            opportunities = search_result["opportunities"]
-
-        if not isinstance(opportunities, list):
-            return AgentResult(
-                agent=self.name, ok=False,
                 message="Opportunities must be provided as a list.",
             )
 
-        today = _parse_date(task.get("today")) or date.today()
+        today = parse_date(task.get("today")) or date.today()
+        discovery = {"ran": False, "candidates": 0, "errors": []}
+
+        # ---- ONLINE DISCOVERY ----
+        if task.get("discover"):
+            discovery["ran"] = True
+
+            if getattr(self.searcher, "available", None) is False:
+                return AgentResult(
+                    agent=self.name,
+                    ok=False,
+                    message="Tavily search backend is unavailable. Please configure TAVILY_API_KEY.",
+                )
+
+            found_all = []
+            failed_countries = []
+            topic = task.get("topic") or "education training digital transformation"
+            max_results = int(task.get("max_results", 5))
+            for country in ("Egypt", "Saudi Arabia"):
+                result = search_rfps(
+                    country=country,
+                    topic=topic,
+                    searcher=self.searcher,
+                    extractor=self.extractor,
+                    max_results=max_results,
+                )
+                if result.get("opportunities"):
+                    found_all.extend(result["opportunities"])
+                discovery["errors"].extend(result.get("errors", []))
+                if not result.get("ok"):
+                    failed_countries.append(country)
+
+            opportunities = found_all + opportunities
+            discovery["candidates"] = len(found_all)
+            discovery["failed_countries"] = failed_countries
+            discovery["partial"] = bool(discovery["errors"] and found_all)
+            discovery["status"] = (
+                "failed" if failed_countries and not found_all
+                else "partial" if discovery["errors"]
+                else "completed"
+            )
         accepted, rejected, seen = [], [], set()
 
         for item in opportunities:
             if not isinstance(item, dict):
+                rejected.append({"reason": "invalid opportunity"})
                 continue
+
+            # Extract fields first so they exist in scope for reject()
             title = str(item.get("title", "")).strip()
-            url = str(item.get("source_url", "")).strip()
+            url = str(item.get("url", item.get("source_url", ""))).strip()
 
-            def reject(reason, _title=title):
-                rejected.append({"title": _title, "reason": reason})
+            def reject(reason, _title=title, _url=url):
+                rejected.append({"title": _title, "source_url": _url, "reason": reason})
+                #
+                # Note: we don't raise here, we continue to the next item
+            # 1. strict geographic rule
+            raw_country = item.get("country", "")
+            country = _get_supported_country(raw_country)
 
-            item_country = str(
-                item.get("country", country)
-            ).strip()
-
-            if item_country.lower() not in self.ALLOWED_COUNTRIES:
+            if not country:
+                if not _norm(raw_country):
+                    reject("country not stated or not verifiable")
+                else:
+                    reject("outside Egypt/Saudi Arabia")
                 continue
 
             # 2. traceability: need a title and a source link
@@ -126,19 +167,19 @@ class RfpAgent(Agent):
                 continue
 
             # 3. relevance (education / training)
-            haystack = _norm(f"{title} {item.get('description', '')} {item.get('category', '')} ") + " "
-            if not any(k in haystack for k in RELEVANT_KEYWORDS):
+            haystack = _norm(f"{title} {item.get('description', '')} {item.get('category', '')}")
+            if not _RELEVANT_RE.search(haystack):
                 reject("not education/training related")
                 continue
 
             # 4. expired
-            deadline = _parse_date(item.get("deadline"))
+            deadline = parse_date(item.get("deadline"))
             if deadline and deadline < today:
                 reject(f"expired on {deadline.isoformat()}")
                 continue
 
             # 5. duplicates (same link, or same title+issuer+country)
-            keys = {("url", _norm(url)),
+            keys = {("url", _norm_url(url)),
                     ("tuple", _norm(title), _norm(item.get("organization")), country)}
             if keys & seen:
                 reject("duplicate")
@@ -151,43 +192,105 @@ class RfpAgent(Agent):
 
             accepted.append({
                 "title": title,
-                "country": (
-                    "Egypt" if item_country.lower() == "egypt"
-                    else "Saudi Arabia"
+                "country": country,
+                "organization": org,
+                "deadline": deadline.isoformat() if deadline else str(item.get("deadline", "") or ""),
+                "days_left": days_left,
+                "category": str(item.get("category", "") or ""),
+                "publication_date": str(item.get("publication_date", "") or ""),
+                "eligibility": eligibility,
+                "documents": item.get("documents", []),
+                "description": str(item.get("description", "") or ""),
+                "source_url": url,
+                "summary": self._summary(title, org, country, deadline, days_left),
+                "eligibility_assessment": (
+                    "needs_manual_review" if eligibility
+                    else "unknown - eligibility not provided"
                 ),
                 "review_route": ROUTES[country],
                 "status": "requires_verification",
+                "is_new": True,
             })
 
-        # Egypt first (flagged for immediate review), then by nearest deadline
+        # Egypt first (flagged for immediate review), then nearest deadline
         accepted.sort(key=lambda o: (o["country"] != "Egypt", o["deadline"] or "9999"))
 
-        csv_path = task.get("csv_path")
-        if csv_path:
-            self._export_csv(accepted, Path(csv_path))
+        # ---- new-opportunity detection + alert ----
+        new_items = self._mark_new(accepted, task.get("store_path"))
+        if new_items and self.notifier:
+            try:
+                self.notifier(new_items)
+            except Exception as exc:
+                discovery["errors"].append(f"notifier failed: {exc}")
 
+        output = {
+            "opportunities": accepted,
+            "count": len(accepted),
+            "new_count": len(new_items),
+            "rejected": rejected,
+            "rejected_count": len(rejected),
+            "flagged_for_immediate_review": [
+                o["title"] for o in accepted if o["country"] == "Egypt"
+            ],
+            "monitored_pipeline": [
+                o["title"] for o in accepted if o["country"] == "Saudi Arabia"
+            ],
+            "supported_countries": ["Egypt", "Saudi Arabia"],
+            "discovery": discovery,
+        }
+
+        csv_path = task.get("csv_path") or task.get("export_csv")
+        if csv_path:
+            try:
+                path = Path(csv_path)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with path.open("w", newline="", encoding="utf-8-sig") as csv_file:
+                    writer = csv.DictWriter(csv_file, fieldnames=CSV_FIELDS, extrasaction="ignore")
+                    writer.writeheader()
+                    writer.writerows(accepted)
+                output["csv_path"] = str(path)
+            except (OSError, ValueError) as error:
+                output["csv_error"] = str(error)
+
+        discovery_failed = (
+            discovery["ran"]
+            and discovery.get("status") == "failed"
+            and not accepted
+            and not task.get("opportunities")
+        )
         return AgentResult(
-            agent=self.name, ok=True,
-            output={
-                "opportunities": accepted,
-                "count": len(accepted),
-                "rejected": rejected,
-                "rejected_count": len(rejected),
-                "flagged_for_immediate_review": [
-                    o["title"] for o in accepted if o["country"] == "Egypt"
-                ],
-                "monitored_pipeline": [
-                    o["title"] for o in accepted if o["country"] == "Saudi Arabia"
-                ],
-                "supported_countries": ["Egypt", "Saudi Arabia"],
-            },
+            agent=self.name, ok=not discovery_failed,
+            output=output,
             message=(
                 f"Processed {len(accepted)} eligible opportunities "
-                f"({len(rejected)} rejected). "
-                "Verify each opportunity against its original source."
+                f"({len(new_items)} new, {len(rejected)} rejected"
+                + (f", {discovery['candidates']} found online" if discovery["ran"] else "")
+                + "). Verify each opportunity against its original source."
+                + (f" Discovery status: {discovery.get('status')}."
+                   if discovery.get("status") in ("partial", "failed") else "")
             ),
-            sources=[item["source_url"] for item in results]
+            sources=[o["source_url"] for o in accepted],
         )
+
+    @staticmethod
+    def _mark_new(accepted, store_path):
+        if not store_path:
+            return list(accepted)
+        path = Path(store_path)
+        try:
+            known = set(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, ValueError):
+            known = set()
+        new_items = []
+        for o in accepted:
+            key = _norm_url(o["source_url"])
+            o["is_new"] = key not in known
+            if o["is_new"]:
+                new_items.append(o)
+            known.add(key)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(sorted(known), ensure_ascii=False), encoding="utf-8")
+        return new_items
 
     @staticmethod
     def _summary(title, org, country, deadline, days_left):
@@ -195,11 +298,3 @@ class RfpAgent(Agent):
         when = (f" Deadline {deadline.isoformat()} ({days_left} days left)."
                 if deadline else " Deadline not stated.")
         return f"{title}{who} in {country}.{when}"
-
-    @staticmethod
-    def _export_csv(rows, path: Path):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", newline="", encoding="utf-8-sig") as f:
-            writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(rows)
