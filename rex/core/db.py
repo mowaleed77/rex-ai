@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE TABLE IF NOT EXISTS profiles (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     phone TEXT, education TEXT, experience TEXT, interests TEXT, goals TEXT,
-    preferred_language TEXT DEFAULT 'en',
+    preferred_language TEXT DEFAULT 'en', avatar TEXT,
     consent_followup INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -115,3 +115,7 @@ def connect(path: Path | str | None = None):
 def init_db(path: Path | str | None = None) -> None:
     with connect(path) as conn:
         conn.executescript(SCHEMA)
+        # upgrade older databases that were created before profile pictures existed
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(profiles)")}
+        if "avatar" not in columns:
+            conn.execute("ALTER TABLE profiles ADD COLUMN avatar TEXT")
