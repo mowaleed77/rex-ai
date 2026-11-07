@@ -1,0 +1,38 @@
+flowchart TB
+    U["👤 User / 🛡️ Admin"] --> UI
+
+    subgraph L1 ["1 · Interface"]
+        UI["Streamlit app<br/>sidebar · sign-in · roles · English / Arabic"]
+    end
+
+    subgraph L2 ["2 · Coordination"]
+        ORCH{{"🧭 Orchestrator<br/>intent routing · workflows · activity trace"}}
+        BOT["💬 REX Assistant<br/>RAG + rules · CV matcher"]
+    end
+
+    subgraph L3 ["3 · Agents"]
+        direction LR
+        CUR["📚 Curriculum"] --> DOC["📄 Document<br/>PDF EN + AR"]
+        CUR --> MKT["📣 Marketing<br/>admin approval"]
+        RFP["📑 RFP<br/>Egypt + Saudi"] --> MAIL["✉️ RFP E-mail<br/>preview · send"]
+    end
+
+    subgraph L4 ["4 · Data & services"]
+        direction LR
+        DB[("SQLite<br/>users · curricula · campaigns<br/>documents · leads · logs")]
+        KB[("Course data<br/>courses.json · knowledge docs")]
+        FILES["generated_docs/<br/>PDF · .eml"]
+        EXT["Optional: LLM · Tavily · SMTP"]
+    end
+
+    UI --> ORCH
+    UI --> BOT
+    ORCH ==> L3
+    BOT --> KB
+    L3 --> KB
+    L3 --> DB
+    L3 --> FILES
+    L3 -.-> EXT
+    BOT -.-> EXT
+    classDef layer fill:#F4F6FA,stroke:#94A3B8,color:#1F3A5F
+    class L1,L2,L3,L4 layer
