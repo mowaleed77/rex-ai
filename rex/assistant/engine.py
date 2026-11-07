@@ -139,15 +139,15 @@ class RexAssistant:
             "answer in arabic", "response in arabic", "respond in arabic",
             "reply in arabic", "speak arabic", "switch to arabic",
             "arabic please", "in arabic", "translate to arabic",
-            "Ø¨Ø§Ù„Ù„ØºØ© Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©", "Ø§ØªÙƒÙ„Ù… Ø¹Ø±Ø¨ÙŠ", "Ø±Ø¯ Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠ",
-            "Ø®Ù„ÙŠÙƒ Ø¹Ø±Ø¨ÙŠ", "Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠ", "ØªØ±Ø¬Ù… Ù„Ù„Ø¹Ø±Ø¨ÙŠ", "ØªØ±Ø¬Ù… Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©",
+            "باللغة العربية", "اتكلم عربي", "رد بالعربي",
+            "خليك عربي", "بالعربي", "ترجم للعربي", "ترجم بالعربية",
         )
         english_requests = (
             "answer in english", "response in english", "respond in english",
             "reply in english", "speak english", "switch to english",
             "english please", "in english", "translate to english",
-            "Ø¨Ø§Ù„Ù„ØºØ© Ø§Ù„Ø§Ù†Ø¬Ù„ÙŠØ²ÙŠØ©", "Ø¨Ø§Ù„Ø§Ù†Ø¬Ù„ÙŠØ²ÙŠ", "Ø§ØªÙƒÙ„Ù… Ø§Ù†Ø¬Ù„ÙŠØ²ÙŠ",
-            "Ø±Ø¯ Ø¨Ø§Ù„Ø§Ù†Ø¬Ù„ÙŠØ²ÙŠ", "Ø¨Ø§Ù„Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠØ©", "ØªØ±Ø¬Ù… Ù„Ù„Ø§Ù†Ø¬Ù„ÙŠØ²ÙŠ",
+            "باللغة الانجليزية", "بالانجليزي", "اتكلم انجليزي",
+            "رد بالانجليزي", "بالإنجليزية", "ترجم للانجليزي",
         )
 
         if any(phrase in n for phrase in arabic_requests):
@@ -163,11 +163,11 @@ class RexAssistant:
             "available course", "all courses", "list courses",
             "show courses", "courses available", "what courses",
             "which courses", "course catalog", "course catalogue",
-            "available training", "ÙƒÙ„ Ø§Ù„Ø¯ÙˆØ±Ø§Øª", "Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¯ÙˆØ±Ø§Øª",
-            "Ø§Ù„Ø¯ÙˆØ±Ø§Øª Ø§Ù„Ù…ØªØ§Ø­Ø©", "Ø§Ù„ÙƒÙˆØ±Ø³Ø§Øª Ø§Ù„Ù…ØªØ§Ø­Ø©", "ÙƒÙ„ Ø§Ù„ÙƒÙˆØ±Ø³Ø§Øª",
-            "Ø§Ø¹Ø±Ø¶ Ø§Ù„Ø¯ÙˆØ±Ø§Øª", "Ø§Ø¹Ø±Ø¶ Ø§Ù„ÙƒÙˆØ±Ø³Ø§Øª", "Ø§Ù„Ø¯ÙˆØ±Ø§Øª Ø§Ù„Ù…ÙˆØ¬ÙˆØ¯Ø©",
-            "Ù…Ø§ Ù‡ÙŠ Ø§Ù„Ø¯ÙˆØ±Ø§Øª", "Ø§ÙŠÙ‡ Ø§Ù„Ø¯ÙˆØ±Ø§Øª", "Ù…Ø§Ù‡ÙŠ Ø§Ù„Ø¯ÙˆØ±Ø§Øª",
-            "Ø§Ù„ÙƒÙˆØ±Ø³Ø§Øª Ø§Ù„Ù…ÙˆØ¬ÙˆØ¯Ø©", "Ø§Ù„Ø¯ÙˆØ±Ø§Øª Ø¹Ù†Ø¯ÙƒÙ…",
+            "available training", "كل الدورات", "جميع الدورات",
+            "الدورات المتاحة", "الكورسات المتاحة", "كل الكورسات",
+            "اعرض الدورات", "اعرض الكورسات", "الدورات الموجودة",
+            "ما هي الدورات", "ايه الدورات", "ماهي الدورات",
+            "الكورسات الموجودة", "الدورات عندكم",
         )
         return any(pattern in n for pattern in patterns)
 
@@ -179,9 +179,9 @@ class RexAssistant:
             for phrase in (
                 "prices", "price list", "all prices", "course prices",
                 "how much are", "what are the prices", "fees for all",
-                "Ø§Ù„Ø§Ø³Ø¹Ø§Ø±", "Ø§Ù„Ø£Ø³Ø¹Ø§Ø±", "Ø§Ø³Ø¹Ø§Ø± Ø§Ù„Ø¯ÙˆØ±Ø§Øª", "Ø£Ø³Ø¹Ø§Ø± Ø§Ù„Ø¯ÙˆØ±Ø§Øª",
-                "Ø§Ø³Ø¹Ø§Ø± Ø§Ù„ÙƒÙˆØ±Ø³Ø§Øª", "Ø£Ø³Ø¹Ø§Ø± Ø§Ù„ÙƒÙˆØ±Ø³Ø§Øª", "Ø¨ÙƒØ§Ù… Ø§Ù„Ø¯ÙˆØ±Ø§Øª",
-                "Ø¨ÙƒØ§Ù… Ø§Ù„ÙƒÙˆØ±Ø³Ø§Øª", "Ø³Ø¹Ø± ÙƒÙ„ Ø¯ÙˆØ±Ø©", "Ø³Ø¹Ø± ÙƒÙ„ ÙƒÙˆØ±Ø³",
+                "الاسعار", "الأسعار", "اسعار الدورات", "أسعار الدورات",
+                "اسعار الكورسات", "أسعار الكورسات", "بكام الدورات",
+                "بكام الكورسات", "سعر كل دورة", "سعر كل كورس",
             )
         )
 
@@ -192,8 +192,8 @@ class RexAssistant:
             phrase in n
             for phrase in (
                 "translate that", "translate it", "translate your answer",
-                "translate the previous", "ØªØ±Ø¬Ù… Ø§Ù„Ø±Ø¯", "ØªØ±Ø¬Ù… Ø§Ù„Ø§Ø¬Ø§Ø¨Ø©",
-                "ØªØ±Ø¬Ù… Ø§Ù„Ø¥Ø¬Ø§Ø¨Ø©", "ØªØ±Ø¬Ù… ÙƒÙ„Ø§Ù…Ùƒ", "ØªØ±Ø¬Ù… Ø§Ù„Ù„ÙŠ ÙØ§Øª",
+                "translate the previous", "ترجم الرد", "ترجم الاجابة",
+                "ترجم الإجابة", "ترجم كلامك", "ترجم اللي فات",
             )
         )
 
@@ -208,7 +208,7 @@ class RexAssistant:
                 s.fmt = fmt
                 break
 
-        match = re.search(r"(\d[\d,]{2,})\s*(egp|le|Ø¬Ù†ÙŠÙ‡|Ø¬)?", msg.lower())
+        match = re.search(r"(\d[\d,]{2,})\s*(egp|le|جنيه|ج)?", msg.lower())
         if match:
             s.budget = int(match.group(1).replace(",", ""))
 
@@ -225,8 +225,8 @@ class RexAssistant:
             "i want learn course courses available show list all please "
             "what which are the about price prices cost fees much "
             "recommend recommendation for me my current level "
-            "Ø¹Ø§ÙŠØ² Ø¹Ø§ÙŠØ²Ø© Ø§Ø±ÙŠØ¯ Ø§Ø±ÙŠØ¯ Ø§Ù† Ø§Ø¹Ø±Ù Ù…Ø§ Ù‡ÙŠ Ø§ÙŠÙ‡ Ø§ÙŠ Ø§Ù„Ø¯ÙˆØ±Ø§Øª Ø§Ù„ÙƒÙˆØ±Ø³Ø§Øª "
-            "Ø§Ù„Ù…ØªØ§Ø­Ø© Ø¹Ù†Ø¯ÙƒÙ… Ø§Ø³Ø¹Ø§Ø± Ø§Ù„Ø§Ø³Ø¹Ø§Ø± Ø¨ÙƒØ§Ù… Ù…Ù† ÙØ¶Ù„Ùƒ"
+            "عايز عايزة اريد اريد ان اعرف ما هي ايه اي الدورات الكورسات "
+            "المتاحة عندكم اسعار الاسعار بكام من فضلك"
         ))
         new_tokens = [token for token in new_tokens if token not in ignored]
 
@@ -252,7 +252,7 @@ class RexAssistant:
 
         arabic = s.lang == "ar"
         lines = [
-            "Ø§Ù„Ø¯ÙˆØ±Ø§Øª Ø§Ù„Ù…ØªØ§Ø­Ø© ÙÙŠ Ø§Ù„Ø£ÙƒØ§Ø¯ÙŠÙ…ÙŠØ©:"
+            "الدورات المتاحة في الأكاديمية:"
             if arabic else "Available courses in the academy:"
         ]
 
@@ -262,14 +262,14 @@ class RexAssistant:
             duration = course.get("duration_hours", "?")
             price = f"{course.get('price_egp', 0):,}"
             if arabic:
-                meta = f"{level} | {duration} Ø³Ø§Ø¹Ø© | {price} Ø¬Ù†ÙŠÙ‡"
+                meta = f"{level} | {duration} ساعة | {price} جنيه"
             else:
                 meta = f"{course.get('level', 'N/A')} | {duration} hours | {price} EGP"
             formats = ", ".join(course.get("formats", []))
             lines.append(f"{i}. {title}\n   {meta} | {formats}")
 
         lines.append(
-            "\nØ§Ø³Ø£Ù„Ù†ÙŠ Ø¹Ù† Ø³Ø¹Ø± Ø£Ùˆ ØªÙØ§ØµÙŠÙ„ Ø£ÙŠ Ø¯ÙˆØ±Ø©."
+            "\nاسألني عن سعر أو تفاصيل أي دورة."
             if arabic else "\nAsk me about the price or details of any course."
         )
         s.last_courses = list(courses)
@@ -279,7 +279,7 @@ class RexAssistant:
         courses = s.last_courses or self.kb.courses
         arabic = s.lang == "ar"
         lines = [
-            "Ø£Ø³Ø¹Ø§Ø± Ø§Ù„Ø¯ÙˆØ±Ø§Øª:"
+            "أسعار الدورات:"
             if arabic else "Course prices:"
         ]
 
@@ -287,7 +287,7 @@ class RexAssistant:
             title = course["title_ar"] if arabic else course["title_en"]
             price = f"{course.get('price_egp', 0):,}"
             line = (
-                f"{i}. {title}: {price} Ø¬Ù†ÙŠÙ‡"
+                f"{i}. {title}: {price} جنيه"
                 if arabic else f"{i}. {title}: {price} EGP"
             )
             promotion = course.get("promotion")
@@ -306,13 +306,13 @@ class RexAssistant:
         asks = {
             "price": (
                 "price prices cost fee fees much offer offers promotion discount "
-                "Ø³Ø¹Ø± Ø§Ø³Ø¹Ø§Ø± Ø§Ù„Ø£Ø³Ø¹Ø§Ø± ØªÙƒÙ„ÙÙ‡ Ø±Ø³ÙˆÙ… Ø¹Ø±Ø¶ Ø®ØµÙ… Ø¨ÙƒØ§Ù…"
+                "سعر اسعار الأسعار تكلفه رسوم عرض خصم بكام"
             ),
-            "duration": "duration hours long Ù…Ø¯Ø© Ù…Ø¯Ù‡ Ø³Ø§Ø¹Ø§Øª",
-            "instructor": "instructor trainer teacher teaches teach Ù…Ø¯Ø±Ø¨ Ù…Ø­Ø§Ø¶Ø±",
-            "prereq": "prerequisite prerequisites requirements Ù…ØªØ·Ù„Ø¨Ø§Øª Ø´Ø±ÙˆØ·",
-            "outcomes": "outcomes content syllabus topics Ù…Ø­ØªÙˆÙ‰ Ù…Ø­ØªÙˆÙŠ Ù…Ø®Ø±Ø¬Ø§Øª Ù‡ØªØ¹Ù„Ù…",
-            "audience": "audience career careers jobs ÙˆØ¸Ø§Ø¦Ù ÙˆØ¸Ø§ÙŠÙ ÙØ±Øµ",
+            "duration": "duration hours long مدة مده ساعات",
+            "instructor": "instructor trainer teacher teaches teach مدرب محاضر",
+            "prereq": "prerequisite prerequisites requirements متطلبات شروط",
+            "outcomes": "outcomes content syllabus topics محتوى محتوي مخرجات هتعلم",
+            "audience": "audience career careers jobs وظائف وظايف فرص",
         }
 
         kind = next(
@@ -338,26 +338,26 @@ class RexAssistant:
 
             if kind == "price":
                 price = f"{item.get('price_egp', 0):,}"
-                result = f"{name}: {price} Ø¬Ù†ÙŠÙ‡" if arabic else f"{name}: {price} EGP"
+                result = f"{name}: {price} جنيه" if arabic else f"{name}: {price} EGP"
                 promotion = item.get("promotion")
                 if promotion and promotion != "None":
                     result += f" â€” {promotion}"
                 lines.append(result)
 
             elif kind == "duration":
-                unit = "Ø³Ø§Ø¹Ø©" if arabic else "hours"
+                unit = "ساعة" if arabic else "hours"
                 formats = ", ".join(item.get("formats", []))
                 lines.append(f"{name}: {item.get('duration_hours', '?')} {unit}, {formats}")
 
             elif kind == "instructor":
                 instructor = self.kb.instructors.get(item.get("instructor_id"), {})
                 instructor_name = (
-                    instructor.get("title_ar") or instructor.get("name", "ØºÙŠØ± Ù…Ø­Ø¯Ø¯")
+                    instructor.get("title_ar") or instructor.get("name", "غير محدد")
                     if arabic else instructor.get("name", "Not specified")
                 )
                 experience = instructor.get("experience_years")
                 bio = instructor.get("bio", "")
-                unit = "Ø³Ù†Ø© Ø®Ø¨Ø±Ø©" if arabic else "years of experience"
+                unit = "سنة خبرة" if arabic else "years of experience"
                 result = f"{name}: {instructor_name}"
                 if experience is not None:
                     result += f" â€” {experience} {unit}"
@@ -366,7 +366,7 @@ class RexAssistant:
                 lines.append(result)
 
             elif kind == "prereq":
-                lines.append(f"{name}: {item.get('prerequisites', 'ØºÙŠØ± Ù…Ø­Ø¯Ø¯' if arabic else 'Not specified')}")
+                lines.append(f"{name}: {item.get('prerequisites', 'غير محدد' if arabic else 'Not specified')}")
 
             elif kind == "outcomes":
                 outcomes = item.get("learning_outcomes", [])
@@ -402,7 +402,7 @@ class RexAssistant:
             )
             is_python_beginner_course = (
                 "python for data analysis" in title
-                or "Ø¨Ø§ÙŠØ«ÙˆÙ† Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª" in title
+                or "بايثون لتحليل البيانات" in title
             )
 
             if beginner_ai_request and is_python_beginner_course:
@@ -446,8 +446,8 @@ class RexAssistant:
         if s.level and not suitable_exists:
             lines = [
                 (
-                    f"Ù…ÙÙŠØ´ Ø¯ÙˆØ±Ø© Ù…Ù†Ø§Ø³Ø¨Ø© Ù„Ù…Ø³ØªÙˆÙ‰ {LEVEL_AR[s.level]} ÙÙŠ Ø§Ù„Ù†ØªØ§Ø¦Ø¬ Ø¯ÙŠ. "
-                    "Ø§Ù„Ø®ÙŠØ§Ø±Ø§Øª Ø§Ù„ØªØ§Ù„ÙŠØ© Ø£Ø¹Ù„Ù‰ Ù…Ù† Ù…Ø³ØªÙˆØ§Ùƒ:"
+                    f"مفيش دورة مناسبة لمستوى {LEVEL_AR[s.level]} في النتائج دي. "
+                    "الخيارات التالية أعلى من مستواك:"
                     if arabic else
                     f"We don't have a {s.level} course on this topic yet. "
                     "These are the closest options (above your level):"
@@ -455,7 +455,7 @@ class RexAssistant:
             ]
         else:
             lines = [
-                "Ø£Ù†Ø³Ø¨ Ø§Ù„Ø¯ÙˆØ±Ø§Øª Ù„ÙŠÙƒ:" if arabic else "Here are the best matches for you:"
+                "أنسب الدورات ليك:" if arabic else "Here are the best matches for you:"
             ]
 
         for number, course in enumerate(courses, 1):
@@ -465,18 +465,18 @@ class RexAssistant:
 
             if s.level == course.get("level"):
                 why.append(
-                    f"Ù…Ø³ØªÙˆØ§Ù‡Ø§ {LEVEL_AR[course['level']]}"
+                    f"مستواها {LEVEL_AR[course['level']]}"
                     if arabic else f"it's a {course['level']} course matching your level"
                 )
 
             if s.fmt and s.fmt in course.get("formats", []):
                 why.append(
-                    "Ù…ØªØ§Ø­Ø© " + {"online": "Ø£ÙˆÙ†Ù„Ø§ÙŠÙ†", "onsite": "Ø­Ø¶ÙˆØ±ÙŠ", "hybrid": "Ù…Ø¯Ù…Ø¬"}.get(s.fmt, s.fmt)
+                    "متاحة " + {"online": "أونلاين", "onsite": "حضوري", "hybrid": "مدمج"}.get(s.fmt, s.fmt)
                     if arabic else f"available {s.fmt}"
                 )
 
             if s.budget and course.get("price_egp", 0) <= s.budget:
-                why.append("Ø¶Ù…Ù† Ù…ÙŠØ²Ø§Ù†ÙŠØªÙƒ" if arabic else "within your budget")
+                why.append("ضمن ميزانيتك" if arabic else "within your budget")
 
             description = course.get("description", "")
             if description:
@@ -485,7 +485,7 @@ class RexAssistant:
             if gap > 0:
                 prerequisites = course.get("prerequisites", "")
                 warning = (
-                    "Ù…Ù„Ø­ÙˆØ¸Ø©: Ù…Ø³ØªÙˆØ§Ù‡Ø§ Ø£Ø¹Ù„Ù‰ Ù…Ù† Ù…Ø³ØªÙˆØ§ÙƒØŒ ÙˆØ§Ù„Ù…ØªØ·Ù„Ø¨Ø§Øª: "
+                    "ملحوظة: مستواها أعلى من مستواك، والمتطلبات: "
                     if arabic else "Note: above your level â€” prerequisites: "
                 )
                 if prerequisites:
@@ -494,8 +494,8 @@ class RexAssistant:
             title = course["title_ar"] if arabic else course["title_en"]
             price = f"{course.get('price_egp', 0):,}"
             meta = (
-                f"{LEVEL_AR.get(course.get('level'), course.get('level'))}ØŒ "
-                f"{course.get('duration_hours', '?')} Ø³Ø§Ø¹Ø©ØŒ {price} Ø¬Ù†ÙŠÙ‡"
+                f"{LEVEL_AR.get(course.get('level'), course.get('level'))}، "
+                f"{course.get('duration_hours', '?')} ساعة، {price} جنيه"
                 if arabic else
                 f"{course.get('level', 'N/A')}, "
                 f"{course.get('duration_hours', '?')}h, {price} EGP"
@@ -504,7 +504,7 @@ class RexAssistant:
             lines.append(
                 f"{number}. {title}\n"
                 f"   {meta}\n"
-                f"   " + ("Ø§Ù„Ø³Ø¨Ø¨: " if arabic else "Why: ")
+                f"   " + ("السبب: " if arabic else "Why: ")
                 + "; ".join(part for part in why if part)
             )
 
@@ -512,17 +512,17 @@ class RexAssistant:
             is_genai_course = (
                 "generative ai" in course_title
                 or "llm" in course_title
-                or "Ù†Ù…Ø§Ø°Ø¬ Ø§Ù„Ù„ØºØ©" in course_title
+                or "نماذج اللغة" in course_title
             )
             if s.level == "Beginner" and is_genai_course and gap > 0:
                 lines.append(
-                    "   ØªÙ†Ø¨ÙŠÙ‡: Ø§Ù„Ø¯ÙˆØ±Ø© Ø£Ø¹Ù„Ù‰ Ù…Ù† Ù…Ø³ØªÙˆØ§Ùƒ. ÙŠÙÙØ¶Ù‘Ù„ Ù…Ø¹Ø±ÙØ© Ø¨Ø§ÙŠØ«ÙˆÙ† ÙˆØ£Ø³Ø§Ø³ÙŠØ§Øª ØªØ¹Ù„Ù… Ø§Ù„Ø¢Ù„Ø© Ø£ÙˆÙ„Ø§Ù‹."
+                    "   تنبيه: الدورة أعلى من مستواك. يُفضّل معرفة بايثون وأساسيات تعلم الآلة أولاً."
                     if arabic else
                     "   This course is above your level. You should have Python and basic ML knowledge first."
                 )
 
         lines.append(
-            "\nØªÙ‚Ø¯Ø± ØªØ³Ø£Ù„Ù†ÙŠ Ø¹Ù† Ø§Ù„Ø³Ø¹Ø± Ø£Ùˆ Ø§Ù„Ù…Ø¯Ø±Ø¨ Ø£Ùˆ Ø§Ù„Ù…ØªØ·Ù„Ø¨Ø§Øª Ù„Ø£ÙŠ Ø¯ÙˆØ±Ø©."
+            "\nتقدر تسألني عن السعر أو المدرب أو المتطلبات لأي دورة."
             if arabic else
             "\nAsk me about price, instructor, prerequisites or content of any of them."
         )
@@ -642,13 +642,13 @@ class RexAssistant:
         faq = self.kb.faq(msg) if not first or "?" in msg else None
         if faq and self._has(
             msg,
-            "installments certificate recorded ØªÙ‚Ø³ÙŠØ· Ø´Ù‡Ø§Ø¯Ø© Ù…Ø³Ø¬Ù„Ø© ØªØ³Ø¬ÙŠÙ„ pay",
+            "installments certificate recorded تقسيط شهادة مسجلة تسجيل pay",
         ):
             answer = faq["a_ar"] if s.lang == "ar" else faq["a_en"]
             s.last_answer = answer
             return answer
 
-        if self._has(msg, "admission register enroll Ù‚Ø¨ÙˆÙ„ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„ØªÙ‚Ø¯ÙŠÙ…"):
+        if self._has(msg, "admission register enroll قبول تسجيل التقديم"):
             key = "requirements_ar" if s.lang == "ar" else "requirements_en"
             answer = self.kb.admission[key]
             s.last_answer = answer

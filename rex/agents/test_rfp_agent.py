@@ -1,6 +1,6 @@
 """Run: python -m pytest -q   (from the folder that contains the agents/ package)"""
 import json
-from agents.rfp_agent import RfpAgent
+from rex.agents.rfp import RfpAgent
 
 
 class FakeSearch:
@@ -83,7 +83,7 @@ def test_manual_list_still_works_and_rejects_usa():
 
 
 def test_groq_extractor_parses_and_ignores_country(monkeypatch):
-    from agents import groq_extractor
+    from rex.agents import groq_extractor
 
     class Resp:
         status_code = 200
@@ -102,3 +102,69 @@ def test_groq_extractor_parses_and_ignores_country(monkeypatch):
         {"discover": True, "today": "2026-10-29"})
     assert res.output["opportunities"][0]["organization"] == "Ministry of Communications"
     assert {o["country"] for o in res.output["opportunities"]} <= {"Egypt", "Saudi Arabia"}
+
+
+def test_arabic_country_and_arabic_indic_date_support():
+    from rex.agents.rfp import _get_supported_country
+    from rex.agents.rfp_sources import infer_country, parse_date
+
+    assert _get_supported_country("القاهرة، مصر") == "Egypt"
+    assert _get_supported_country("مصر") == "Egypt"
+    assert _get_supported_country("الرياض - السعودية") == "Saudi Arabia"
+    assert infer_country("مناقصة تدريب في القاهرة، مصر") == "Egypt"
+    assert parse_date("١٥/١٢/٢٠٢٦").isoformat() == "2026-12-15"
+    assert parse_date("۱۵/۱۲/۲۰۲۶").isoformat() == "2026-12-15"
+
+
+def test_topic_is_propagated_to_discovery_queries():
+    from rex.agents.rfp_search import search_rfps
+
+    searcher = FakeSearch([])
+    result = search_rfps(
+        country="Egypt",
+        topic="cybersecurity training",
+        searcher=searcher,
+    )
+    assert result["ok"]
+    assert searcher.calls
+    assert all("cybersecurity training" in query for query, _ in searcher.calls)
+
+
+def test_partial_search_errors_are_preserved():
+    from rex.agents.rfp_search import search_rfps
+
+    class PartiallyFailingSearch(FakeSearch):
+        def search(self, query, include_domains=None, max_results=8):
+            self.calls.append((query, include_domains))
+            if len(self.calls) == 1:
+                raise RuntimeError("temporary search outage")
+            return [RESULTS[0]]
+
+    result = search_rfps(
+        country="Egypt",
+        topic="education",
+        searcher=PartiallyFailingSearch([]),
+    )
+    assert result["ok"] is True
+    assert result["partial"] is True
+    assert result["opportunities"]
+    assert any("temporary search outage" in error for error in result["errors"])
+
+
+def test_extractor_failure_is_reported_without_stopping_discovery():
+    from rex.agents.rfp_sources import discover
+
+    class BrokenExtractor:
+        def __call__(self, text, url):
+            raise RuntimeError("extractor unavailable")
+
+    candidates, errors = discover(
+        searcher=FakeSearch([RESULTS[0]]),
+        countries=("Egypt",),
+        extractor=BrokenExtractor(),
+        max_results=1,
+        topic="training",
+    )
+    assert candidates
+    assert errors
+    assert any("Extractor failed" in error for error in errors)

@@ -37,7 +37,11 @@ class LLMClient:
     def from_env(cls):
         """Returns a client, or None when no API key is configured."""
         load_dotenv()
-        key = os.environ.get("LLM_API_KEY") or os.environ.get("OPENAI_API_KEY")
+        key = (
+    os.environ.get("LLM_API_KEY")
+    or os.environ.get("GROQ_API_KEY")   
+    or os.environ.get("OPENAI_API_KEY")
+)
         if not key:
             return None
         return cls(
