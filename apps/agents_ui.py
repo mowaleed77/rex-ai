@@ -151,9 +151,7 @@ tab_chat, tab_rfp, tab_cur, tab_doc, tab_mkt = st.tabs(
     ["💬 Assistant (chatbot)", "📑 RFP Research", "📚 Curriculum", "📄 Documents (PDF)", "📣 Marketing"]
 )
 
-tab_chat, tab_rfp, tab_cur, tab_doc, tab_mkt = st.tabs(
-    ["💬 Assistant (chatbot)", "📑 RFP Research", "📚 Curriculum", "📄 Documents (PDF)", "📣 Marketing"]
-)
+
 
 
 def show_text(text: str):
@@ -167,7 +165,7 @@ with tab_chat:
     st.caption("Ask in English or Arabic about courses, prices, duration, prerequisites and careers.")
 
     if "chat_bot" not in st.session_state:
-        st.session_state["chat_bot"] = RagAssistant()
+        st.session_state["chat_bot"] = RexAssistant()
         st.session_state["chat_session"] = Session()
         st.session_state["chat_messages"] = []
 
@@ -193,7 +191,7 @@ with tab_chat:
         chat_reset = new_col.form_submit_button("New conversation")
 
     if chat_reset:
-        st.session_state["chat_bot"] = RexAssistant()
+        st.session_state["chat_bot"] = RagAssistant()
         st.session_state["chat_session"] = Session()
         st.session_state["chat_messages"] = []
         st.rerun()
