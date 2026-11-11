@@ -18,14 +18,16 @@ class Store:
 
     # ----------------------------------------------------------------- profile
     PROFILE_FIELDS = ("phone", "education", "experience", "interests", "goals",
-                      "preferred_language", "consent_followup")
+                      "preferred_language", "consent_followup", "avatar")
 
     def get_profile(self, user_id: int) -> dict:
         with connect(self.db_file) as conn:
             row = conn.execute("SELECT * FROM profiles WHERE user_id = ?", (user_id,)).fetchone()
         base = {f: "" for f in self.PROFILE_FIELDS}
-        base.update({"preferred_language": "en", "consent_followup": 0})
-        return {**base, **dict(row)} if row else base
+        base.update({"preferred_language": "en", "consent_followup": 0, "avatar": ""})
+        if row:
+            base.update({k: v for k, v in dict(row).items() if v is not None})
+        return base
 
     def save_profile(self, user_id: int, **fields) -> dict:
         data = {k: fields[k] for k in self.PROFILE_FIELDS if k in fields}
@@ -36,10 +38,11 @@ class Store:
         with connect(self.db_file) as conn:
             conn.execute(
                 "INSERT INTO profiles (user_id, phone, education, experience, interests, goals, "
-                "preferred_language, consent_followup, updated_at) VALUES (?,?,?,?,?,?,?,?, datetime('now')) "
+                "preferred_language, consent_followup, avatar, updated_at) VALUES (?,?,?,?,?,?,?,?,?, datetime('now')) "
                 "ON CONFLICT(user_id) DO UPDATE SET phone=excluded.phone, education=excluded.education, "
                 "experience=excluded.experience, interests=excluded.interests, goals=excluded.goals, "
                 "preferred_language=excluded.preferred_language, consent_followup=excluded.consent_followup, "
+                "avatar=excluded.avatar, "
                 "updated_at=datetime('now')",
                 (user_id, *[current[f] for f in self.PROFILE_FIELDS]),
             )

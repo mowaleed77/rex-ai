@@ -10,6 +10,7 @@ Change who sees what in TABS below. First admin: user "admin" - see README / .en
 """
 import json
 import sys
+from html import escape as html_escape
 import uuid
 from datetime import date
 from pathlib import Path
@@ -33,7 +34,9 @@ import ui_theme  # noqa: E402
 from rex.agents.orchestrator import Orchestrator  # noqa: E402
 from rex.assistant.engine import RexAssistant, Session  # noqa: E402
 from rex.core.auth import AuthError, AuthService  # noqa: E402
+from rex.core import stats  # noqa: E402
 from rex.core.store import Store  # noqa: E402
+from rex.utils import avatars, cv_match, timeline  # noqa: E402
 from rex.utils import catalog as cat  # noqa: E402
 
 try:
@@ -99,6 +102,7 @@ def pdf_button(path: str, label: str, key: str):
 # -------------------------------------------------------------- authentication
 def start_session(user):
     S["user"] = user
+    S["greet_pending"] = True                              # the robot says hello once after each sign-in
     S["token"] = auth.create_session(user, days=0.5)      # stay signed in on refresh for 12 hours
     st.query_params["s"] = S["token"]
     store.log(user.id, user.username, "sign_in")
@@ -241,6 +245,7 @@ def persist_pdfs(user, pdfs: dict, language: str):
 
 # ----------------------------------------------------------------- sidebar
 NAV_GROUPS = [  # (group label key, [tab keys])
+    ("nav_overview", ["dashboard"]),
     ("nav_agents", ["assistant", "command", "curriculum", "documents", "marketing", "rfp"]),
     ("nav_account", ["profile"]),
     ("nav_admin", ["admin"]),
@@ -257,11 +262,14 @@ def sidebar(user, visible):
     if S.get("nav") not in by_key:
         S["nav"] = visible[0][0]
     with st.sidebar:
-        st.markdown('<div class="rex-brand"><span class="rex-logo">R</span><div><b>REX AI</b><br>'
-                    f'<small>{t("brand_sub")}</small></div></div>', unsafe_allow_html=True)
-        initial = (user.display_name[:1] or "?").upper()
+        st.markdown(f'<div class="rex-brand"><span class="rex-logo">{avatars.logo_svg()}</span>'
+                    f'<div><b>REX AI</b><br><small>{t("brand_sub")}</small></div></div>', unsafe_allow_html=True)
+        chosen = store.get_profile(user.id).get("avatar")
+        picture = avatars.svg(chosen) if chosen in avatars.AVATARS else None
+        initial = html_escape((user.display_name[:1] or "?").upper())
         st.markdown(
-            f'<div class="rex-user"><div class="rex-avatar">{initial}</div><div><b>{user.display_name}</b><br>'
+            f'<div class="rex-user"><div class="rex-avatar">{picture or initial}</div>'
+            f'<div><b>{html_escape(user.display_name)}</b><br>'
             f'{ui_theme.pill(t("role_admin") if user.is_admin else t("role_user"), "info")}</div></div>',
             unsafe_allow_html=True)
         for group_label, keys in NAV_GROUPS:
@@ -286,7 +294,99 @@ def sidebar(user, visible):
             sign_out()
 
 
+# ------------------------------------------------------------ tab: dashboard
+def _chart(data: dict, title: str):
+    if not data:
+        return
+    st.markdown(f"**{title}**")
+    st.bar_chart(data)
+
+
+def render_dashboard(user):
+    data = stats.summary(user.id, user.is_admin, courses=len(COURSES))
+    st.caption("Admin view - the whole academy." if user.is_admin else "Your activity.")
+    cards = [("Courses in catalog", data["courses"]), ("Curricula", data["curricula_total"]),
+             ("PDF documents", data["documents_total"])]
+    if user.is_admin:
+        cards += [("Campaigns", data["campaigns_total"]), ("Awaiting approval", data["pending_campaigns"]),
+                  ("Leads", data["leads"]), ("RFP e-mails", data["emails_sent"] + data["emails_saved"]),
+                  ("Users", data["users"])]
+    for row in range(0, len(cards), 4):
+        cols = st.columns(4)
+        for col, (label, value) in zip(cols, cards[row:row + 4]):
+            col.metric(label, value)
+
+    left, right = st.columns(2)
+    with left:
+        _chart({STATUS_LABEL.get(k, k): v for k, v in data["curricula"].items()}, "Curricula by status")
+        _chart({k.replace("_", " "): v for k, v in data["documents"].items()}, "Documents by type")
+    with right:
+        _chart({timeline.label(k).split(" ", 1)[-1]: v for k, v in data["agent_calls"].items()},
+               "Agent calls")
+        if user.is_admin:
+            _chart({STATUS_LABEL.get(k, k): v for k, v in data["campaigns"].items()}, "Campaigns by status")
+    if not any((data["curricula_total"], data["documents_total"], data["agent_calls"])):
+        st.info("Nothing here yet. Open the Command Center and try: “Launch the Excel for Business Analysis course”.")
+
+    st.markdown("**Quick start**")
+    q1, q2, q3 = st.columns(3)
+    q1.button("💬 Ask the assistant", key="qs_chat", on_click=go, args=("assistant",), use_container_width=True)
+    q2.button("🧭 Launch a course", key="qs_cmd", on_click=go, args=("command",), use_container_width=True)
+    q3.button("📚 New curriculum", key="qs_cur", on_click=go, args=("curriculum",), use_container_width=True)
+
+    live = (S.get("rex").trace if S.get("rex") else [])
+    if live:
+        st.markdown("**Latest agent activity (this session)**")
+        events = live[-8:]
+        st.markdown(f'<div class="rex-flow">{timeline.flow(events, lang() == "ar")}</div>', unsafe_allow_html=True)
+        st.markdown(timeline.timeline_html(events, lang() == "ar"), unsafe_allow_html=True)
+    elif data["recent"]:
+        st.markdown("**Recent activity**")
+        st.dataframe(data["recent"])
+
+
 # ------------------------------------------------------------------- tab: chat
+def render_cv_match(user):
+    """Upload a CV or describe interests -> top course matches. Nothing is stored unless the user asks."""
+    arabic = lang() == "ar"
+    st.caption("Upload a CV (.pdf, .docx, .txt) or describe your skills and goals. REX matches them to our courses. "
+               "Your text is analysed in memory and is not saved." if not arabic else
+               "ارفع سيرتك الذاتية أو اكتب مهاراتك وأهدافك، وسيطابقها REX مع دورات الأكاديمية. لا يتم حفظ النص.")
+    upload = st.file_uploader("CV file", type=["pdf", "docx", "txt", "md"], key="cv_file")
+    typed = st.text_area("…or describe your background, skills and goals", key="cv_text", height=110)
+    if st.button("🔎 Find my courses", key="cv_go", type="primary"):
+        text, error = typed or "", None
+        if upload is not None:
+            try:
+                text = cv_match.extract_text(upload.getvalue(), upload.name) + "\n" + text
+            except ValueError as problem:
+                error = str(problem)
+        if error:
+            st.warning(error)
+        else:
+            S["cv_result"] = cv_match.recommend(text, COURSES, arabic=arabic)
+    result = S.get("cv_result")
+    if not result:
+        return
+    if not result["ok"]:
+        st.info(result["message"])
+        return
+    years = f"{result['years']} years" if result.get("years") else "not stated"
+    st.markdown(f"**Suggested starting level:** {result['level']} · **Experience:** {years}")
+    if result["skills"]:
+        st.markdown("**Skills found:** " + ", ".join(f"`{x}`" for x in result["skills"]))
+    for i, rec in enumerate(result["recommendations"]):
+        c = rec["course"]
+        st.markdown(
+            f'<div class="rex-card"><h4>{rec["title"]} {ui_theme.pill(str(rec["score"]) + "% match", "ok")}</h4>'
+            f'<span class="rex-muted">{c.get("level")} · {c.get("duration_hours")} h · {c.get("price_egp")} EGP</span>'
+            f'<br>{rec["reason"]}</div>', unsafe_allow_html=True)
+    if st.button("💾 Save these interests to my profile", key="cv_save"):
+        titles = ", ".join(r["course"]["title_en"] for r in result["recommendations"])
+        store.save_profile(user.id, interests=titles)
+        st.success("Saved to My Profile.")
+
+
 def render_chat(user):
     st.subheader("💬 " + t("tab_assistant"))
     messages = S["chat_messages"]
@@ -297,6 +397,9 @@ def render_chat(user):
     for m in messages:
         with st.chat_message(m["role"]):
             st.markdown(m["content"].replace("\n", "  \n"))
+
+    with st.expander("📎 " + ("Match my CV to courses" if lang() != "ar" else "طابق سيرتي الذاتية مع الدورات")):
+        render_cv_match(user)
 
     with st.form("chat_form", clear_on_submit=True):
         text = st.text_input("Message", placeholder=t("chat_placeholder"), label_visibility="collapsed")
@@ -352,7 +455,9 @@ def run_command(user, text: str, approved_by: str | None = None):
                     "(marketing campaigns and tender research are admin-only).", "result": None, "source": text})
         return
     options = {"use_llm": bool(S.get("cc_llm")), "approved_by": approved_by}
+    before = len(rex.trace)
     res = rex.handle(text, S["ctx"], **options)
+    events = list(rex.trace[before:]) if len(rex.trace) >= before else list(rex.trace)
     S["ctx"].update(res.context)
     arts = res.artifacts
     if arts.get("curriculum"):
@@ -361,13 +466,21 @@ def run_command(user, text: str, approved_by: str | None = None):
         persist_campaign(user, arts["campaign"])
     if arts.get("pdfs"):
         persist_pdfs(user, arts["pdfs"], (arts.get("curriculum") or {}).get("language", "en"))
-    log.append({"role": "assistant", "text": res.message, "result": res, "source": text})
+    log.append({"role": "assistant", "text": res.message, "result": res, "source": text, "events": events})
 
 
 def render_result(user, entry, index: int):
     res = entry["result"]
     if res is None:
         return
+    events = entry.get("events") or []
+    if events:
+        st.markdown(f'<div class="rex-flow">{timeline.flow(events, lang() == "ar")}</div>', unsafe_allow_html=True)
+        info = timeline.summary(events)
+        st.caption(f"{info['steps']} agent call(s) · {info['agents']} agent(s) · {info['total_ms']} ms"
+                   + (f" · {info['failed']} failed" if info["failed"] else ""))
+        with st.expander("Agent activity timeline", expanded=True):
+            st.markdown(timeline.timeline_html(events, lang() == "ar"), unsafe_allow_html=True)
     if res.steps:
         with st.expander("What I did", expanded=False):
             for s in res.steps:
@@ -885,8 +998,34 @@ def render_rfp(user):
 
 
 # ----------------------------------------------------------------- tab: profile
+def pick_avatar(user_id: int, avatar_id: str):
+    store.save_profile(user_id, avatar=avatar_id if avatar_id in avatars.AVATARS else "")
+
+
+def render_avatar_picker(user):
+    current = store.get_profile(user.id).get("avatar") or ""
+    ar = lang() == "ar"
+    st.markdown("#### " + ("صورتك الشخصية" if ar else "Your profile picture"))
+    st.caption("اختر روبوت ليظهر بجانب اسمك." if ar else "Pick a chatbot avatar. It appears beside your name.")
+    ids = avatars.avatar_ids()
+    for start in range(0, len(ids), 4):
+        cols = st.columns(4)
+        for col, avatar_id in zip(cols, ids[start:start + 4]):
+            with col:
+                selected = avatar_id == current
+                st.markdown(f'<div class="rex-pick{" sel" if selected else ""}">{avatars.svg(avatar_id)}</div>',
+                            unsafe_allow_html=True)
+                st.button(("✓ " if selected else "") + avatars.name(avatar_id, ar), key=f"av_{avatar_id}",
+                          use_container_width=True, type="primary" if selected else "secondary",
+                          on_click=pick_avatar, args=(user.id, avatar_id))
+    if current:
+        st.button("Use my initial instead" if not ar else "استخدم الحرف الأول بدلاً منها", key="av_clear",
+                  on_click=pick_avatar, args=(user.id, ""))
+
+
 def render_profile(user):
     st.subheader("👤 " + t("tab_profile"))
+    render_avatar_picker(user)
     profile = store.get_profile(user.id)
     st.caption("Saved details are used to prefill your requests and, with your consent, let admissions contact you.")
     with st.form("profile_form"):
@@ -1035,6 +1174,7 @@ def render_admin(user):
 
 # ---------------------------------------------------------------------- main
 TABS = [  # (key, label key, icon, renderer, roles)
+    ("dashboard", "tab_dashboard", "🏠", render_dashboard, {"user", "admin"}),
     ("assistant", "tab_assistant", "💬", render_chat, {"user", "admin"}),
     ("command", "tab_command", "🧭", render_command, {"user", "admin"}),
     ("curriculum", "tab_curriculum", "📚", render_curriculum, {"user", "admin"}),
@@ -1059,6 +1199,11 @@ def main():
     visible = [row for row in TABS if user.role in row[4]]
     sidebar(user, visible)
     current = next(row for row in visible if row[0] == S["nav"])
+    if S.pop("greet_pending", False):
+        from datetime import datetime
+        pending = len(store.list_campaigns("pending_admin_approval")) if user.is_admin else 0
+        ui_theme.robot_greeting(st, user.display_name, user.is_admin, lang() == "ar",
+                                datetime.now().hour, pending)
     ui_theme.hero(st, t(current[1]), t("tagline"), f"{user.display_name} · "
                   f"{t('role_admin') if user.is_admin else t('role_user')}")
     try:
