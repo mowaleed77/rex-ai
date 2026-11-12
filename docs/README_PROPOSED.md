@@ -14,7 +14,7 @@ watch for training tenders in Egypt and Saudi Arabia.
 | 🧭 **Orchestrator** | Understands a request (“Launch the Excel course”), calls the right agents in order, passes results between them, and pauses for human approval. Every agent call is shown in an **activity timeline**. |
 | 📚 **Curriculum Agent** | Generates a structured curriculum, supports review → revise → approve with versions, gap analysis against accreditation requirements (never claims official accreditation). |
 | 📄 **Document Agent** | Produces downloadable PDFs in **English and Arabic** (right-to-left, joined letters): curriculum report, course description, gap analysis. |
-| 📣 **Marketing Agent** | Creates campaign content for 7 channels in English/Arabic, a 7-day plan and KPIs. Needs **admin approval**; nothing is ever auto-published. |
+| 📣 **Marketing Agent** | Creates campaign content for 7 channels in English/Arabic, a 7-day plan and KPIs. Needs **admin approval**; an admin can then publish to Facebook, Instagram, LinkedIn and e-mail through the **Publisher agent** (dry-run by default, `REX_PUBLISH_MODE=live` to post). |
 | 📑 **RFP Agent** | Finds/processes tender opportunities, **keeps only Egypt and Saudi Arabia**, drops expired and duplicate items, summarises each. |
 | ✉️ **RFP E-mail Agent** | Builds a digest, shows a preview, and sends it to chosen recipients by SMTP (or saves an `.eml` file when SMTP is not configured). |
 | 🏠 **Dashboard** | Counts and charts from the database (curricula, documents, campaigns, leads, agent calls). |

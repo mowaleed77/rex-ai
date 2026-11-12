@@ -20,7 +20,12 @@ All agents implement `rex.agents.base.Agent` and return `AgentResult` with `sour
 Suggested MVP types: Course Description, Curriculum PDF, Participant Guide. Template-based, AR/EN, editable before export, downloadable PDF.
 
 ## 5. Marketing — Sprint 2 (owner: Member 1)
-**Input:** approved course data, audience, platforms, objective, offer/CTA. **Output:** captions, ad copy, LinkedIn post, email, WhatsApp message, headlines, CTAs (multiple variations) + simple strategy. **Rule:** manual approval before anything is sent/published.
+**Input:** approved course data, audience, platforms, objective, offer/CTA. **Output:** captions, ad copy, LinkedIn post, email, WhatsApp message, headlines, CTAs (multiple variations) + simple strategy. **Rule:** manual approval before anything is sent/published. Real posting is done by the Publisher agent (below).
 
 ## Connected workflow (acceptance criterion)
 Curriculum approved → Marketing generates campaign from the same course record → Admin approves.
+
+## Publisher Agent (`rex/agents/publisher.py`)
+**Input:** an *approved* campaign, per-channel variation, image URL (Instagram), admin name. **Output:** per-channel result (post id / URL / error) + `publish_log` on the campaign.
+**Channels:** Facebook Page, Instagram Business, LinkedIn, e-mail (opted-in list). WhatsApp and paid ads stay manual.
+**Rules:** admin only; approved campaigns only; `REX_PUBLISH_MODE=dry` (default) sends nothing, `live` posts for real; no double posting; tokens never logged.

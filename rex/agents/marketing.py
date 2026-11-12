@@ -14,7 +14,8 @@ Actions (task["action"]):
   use_llm     True -> the LLM writes the copy; every variation is fact-checked and falls back to a template
 
 Rules: only facts present in the input are used (no invented price, offer, statistic or accreditation claim),
-and nothing is ever published - an approved campaign is only *ready for distribution*.
+and this agent never publishes - an approved campaign is only *ready for distribution*; posting is done by
+the Publisher agent (rex/agents/publisher.py), admin-only and only after approval.
 """
 from __future__ import annotations
 

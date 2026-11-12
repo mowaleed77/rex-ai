@@ -34,6 +34,7 @@ from .base import Agent, AgentResult
 from .curriculum import CurriculumAgent
 from .document import DocumentAgent
 from .marketing import MarketingAgent
+from .publisher import PublisherAgent
 from .rfp import RfpAgent
 from .rfp_email import RfpEmailAgent
 
@@ -112,7 +113,7 @@ def detect_intent(text: str) -> str:
 class Orchestrator:
     def __init__(self, docs_dir: Path | str | None = None, courses: list[dict] | None = None,
                  assistant=None, on_event: Callable[[dict], None] | None = None):
-        agents = (RfpAgent(), CurriculumAgent(), DocumentAgent(), MarketingAgent(), RfpEmailAgent())
+        agents = (RfpAgent(), CurriculumAgent(), DocumentAgent(), MarketingAgent(), PublisherAgent(), RfpEmailAgent())
         self.agents: dict[str, Agent] = {agent.name: agent for agent in agents}
         self.docs_dir = Path(docs_dir) if docs_dir else ROOT / "generated_docs"
         self.courses = courses if courses is not None else cat.load_courses()
