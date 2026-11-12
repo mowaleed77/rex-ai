@@ -157,6 +157,12 @@ class Store:
             )
         return status
 
+    def update_campaign(self, campaign_id: int, campaign: dict, status: str | None = None) -> None:
+        """Store the latest version of a campaign (e.g. after publishing, so the publish log survives restarts)."""
+        with connect(self.db_file) as conn:
+            conn.execute("UPDATE campaigns SET payload = ?, status = COALESCE(?, status) WHERE id = ?",
+                         (json.dumps(campaign, ensure_ascii=False), status, campaign_id))
+
     # --------------------------------------------------------------- documents
     def add_document(self, user_id: int | None, doc_type: str, title: str, language: str, file_path: str) -> int:
         with connect(self.db_file) as conn:
