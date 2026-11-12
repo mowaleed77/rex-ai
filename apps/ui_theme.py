@@ -198,7 +198,8 @@ def pill(text: str, kind: str = "info") -> str:
 
 
 STATUS_KIND = {"draft": "muted", "in_review": "info", "changes_requested": "warn", "approved": "ok",
-               "pending_admin_approval": "warn", "rejected": "bad"}
+               "pending_admin_approval": "warn", "rejected": "bad",
+               "published": "ok", "partially_published": "info"}
 
 # -------------------------------------------------------------------- UI texts
 TR = {
